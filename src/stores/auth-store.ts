@@ -1,0 +1,36 @@
+﻿import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import type { User } from "@/types/api";
+
+interface AuthState {
+  token: string | null;
+  user: User | null;
+  setAuth: (token: string, user: User) => void;
+  setUser: (user: User) => void;
+  clear: () => void;
+  hasRole: (...roles: string[]) => boolean;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      token: null,
+      user: null,
+      setAuth: (token, user) => set({ token, user }),
+      setUser: (user) => set({ user }),
+      clear: () => set({ token: null, user: null }),
+      hasRole: (...roles) =>
+        (get().user?.roles ?? []).some((role) => roles.includes(role.key)),
+    }),
+    {
+      name: "client_auth",
+      storage: createJSONStorage(() => localStorage),
+    },
+  ),
+);
+
+/** Read the token outside React (axios interceptor). */
+export function getAuthToken(): string | null {
+  return useAuthStore.getState().token;
+}
+
