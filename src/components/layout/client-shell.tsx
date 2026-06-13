@@ -11,6 +11,7 @@ import {
   Menu,
   Settings,
   Users,
+  Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { href: "/seating", label: "Seating Plan", icon: Armchair },
   { href: "/gallery", label: "Gallery", icon: Images },
   { href: "/gifts", label: "Gift Tracking", icon: Gift },
+  { href: "/expenses", label: "Expense Tracking", icon: Wallet },
   { href: "/timeline", label: "Timeline", icon: ListChecks },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
