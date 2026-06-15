@@ -1,8 +1,8 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { EmptyState } from "@/components/ui/empty-state";
 import { PageLoader } from "@/components/ui/spinner";
+import { CreateWeddingForm } from "@/components/wedding/create-wedding-form";
 import { useMyWedding } from "@/hooks/use-my-wedding";
 import type { Wedding } from "@/types/api";
 
@@ -30,10 +30,7 @@ export function WeddingPage({
       {isLoading ? (
         <PageLoader label="Loading your wedding..." />
       ) : !wedding ? (
-        <EmptyState
-          title="No wedding linked to your account"
-          description="Ask your wedding organizer to add you as a member of your wedding project."
-        />
+        <CreateWeddingForm />
       ) : (
         children(wedding)
       )}
