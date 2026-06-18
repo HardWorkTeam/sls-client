@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth-service";
 import { useAuthStore } from "@/stores/auth-store";
 
+export function useRegister() {
+  const setAuth = useAuthStore((state) => state.setAuth);
+  return useMutation({
+    mutationFn: authService.register,
+    onSuccess: (data) => setAuth(data.token, data.user),
+  });
+}
+
 export function useLogin() {
   const setAuth = useAuthStore((state) => state.setAuth);
   return useMutation({
@@ -12,6 +20,14 @@ export function useLogin() {
       authService.login(email, password),
     onSuccess: (data) => setAuth(data.token, data.user),
   });
+}
+
+export function useForgotPassword() {
+  return useMutation({ mutationFn: authService.forgotPassword });
+}
+
+export function useResetPassword() {
+  return useMutation({ mutationFn: authService.resetPassword });
 }
 
 export function useLogout() {

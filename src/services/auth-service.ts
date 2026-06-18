@@ -2,6 +2,19 @@
 import type { AuthResponse, User } from "@/types/api";
 
 export const authService = {
+  async register(payload: {
+    name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  }): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>("/auth/register", {
+      ...payload,
+      device_name: "client-portal",
+    });
+    return data;
+  },
+
   async login(email: string, password: string): Promise<AuthResponse> {
     const { data } = await api.post<AuthResponse>("/auth/login", {
       email,
@@ -46,6 +59,15 @@ export const authService = {
 
   async forgotPassword(email: string): Promise<void> {
     await api.post("/auth/forgot-password", { email });
+  },
+
+  async resetPassword(payload: {
+    token: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+  }): Promise<void> {
+    await api.post("/auth/reset-password", payload);
   },
 };
 
