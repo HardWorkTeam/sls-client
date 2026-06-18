@@ -86,6 +86,17 @@ export const weddingService = {
     return data.data;
   },
 
+  async inviteMember(
+    id: number,
+    payload: { name: string; email: string; member_role: string },
+  ): Promise<{ member: WeddingMember; temp_password: string | null }> {
+    const { data } = await api.post<{
+      data: WeddingMember;
+      temp_password: string | null;
+    }>(`/weddings/${id}/members/invite`, payload);
+    return { member: data.data, temp_password: data.temp_password };
+  },
+
   async removeMember(id: number, memberId: number): Promise<void> {
     await api.delete(`/weddings/${id}/members/${memberId}`);
   },

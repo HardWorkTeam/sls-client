@@ -1,25 +1,81 @@
 "use client";
 
-import { CheckCircle2, HelpCircle, Users, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  HelpCircle,
+  Pencil,
+  UserPlus,
+  Users,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { PageLoader } from "@/components/ui/spinner";
 import { StatCard } from "@/components/ui/stat-card";
-import { useChangeWeddingStatus, useWeddingDashboard } from "@/hooks/use-weddings";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  useChangeWeddingStatus,
+  useInviteMember,
+  useUpdateWedding,
+  useWeddingDashboard,
+  useWeddingMembers,
+} from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { Wedding, WeddingStatus } from "@/types/api";
 
+interface EditForm {
+  wedding_name: string;
+  bride_name: string;
+  groom_name: string;
+  wedding_date: string;
+  wedding_time: string;
+  phone: string;
+  email: string;
+  ceremony_venue: string;
+  reception_venue: string;
+  google_map_link: string;
+  story_description: string;
+}
+
+interface InviteForm {
+  name: string;
+  email: string;
+  member_role: string;
+}
+
 export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const { data: dashboard, isLoading } = useWeddingDashboard(wedding.id);
+  const { data: members } = useWeddingMembers(wedding.id);
   const changeStatus = useChangeWeddingStatus(wedding.id);
+  const updateWedding = useUpdateWedding(wedding.id);
+  const inviteMember = useInviteMember(wedding.id);
   const hasRole = useAuthStore((state) => state.hasRole);
   const [error, setError] = useState<string | null>(null);
 
-  const canManageStatus = hasRole("super_admin", "organizer");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const editForm = useForm<EditForm>();
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [invitedCredentials, setInvitedCredentials] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+  const inviteForm = useForm<InviteForm>({
+    defaultValues: { name: "", email: "", member_role: "groom" },
+  });
+
+  const canManageStatus = hasRole("super_admin", "organizer", "couple");
 
   const transition = async (status: WeddingStatus) => {
     setError(null);
@@ -30,10 +86,71 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
     }
   };
 
+  const openEdit = () => {
+    setEditError(null);
+    editForm.reset({
+      wedding_name: wedding.wedding_name,
+      bride_name: wedding.bride_name,
+      groom_name: wedding.groom_name,
+      wedding_date: wedding.wedding_date ?? "",
+      wedding_time: (wedding.wedding_time ?? "").slice(0, 5),
+      phone: wedding.phone ?? "",
+      email: wedding.email ?? "",
+      ceremony_venue: wedding.ceremony_venue ?? "",
+      reception_venue: wedding.reception_venue ?? "",
+      google_map_link: wedding.google_map_link ?? "",
+      story_description: wedding.story_description ?? "",
+    });
+    setEditOpen(true);
+  };
+
+  const onEdit = editForm.handleSubmit(async (values) => {
+    setEditError(null);
+    try {
+      await updateWedding.mutateAsync({
+        wedding_name: values.wedding_name,
+        bride_name: values.bride_name,
+        groom_name: values.groom_name,
+        wedding_date: values.wedding_date || null,
+        wedding_time: values.wedding_time ? values.wedding_time.slice(0, 5) : null,
+        phone: values.phone || null,
+        email: values.email || null,
+        ceremony_venue: values.ceremony_venue || null,
+        reception_venue: values.reception_venue || null,
+        google_map_link: values.google_map_link || null,
+        story_description: values.story_description || null,
+      });
+      setEditOpen(false);
+    } catch (err) {
+      setEditError(apiErrorMessage(err));
+    }
+  });
+
+  const onInvite = inviteForm.handleSubmit(async (values) => {
+    setInviteError(null);
+    setInvitedCredentials(null);
+    try {
+      const result = await inviteMember.mutateAsync(values);
+      if (result.temp_password) {
+        setInvitedCredentials({
+          email: values.email,
+          password: result.temp_password,
+        });
+      }
+      inviteForm.reset({ name: "", email: "", member_role: "groom" });
+      if (!result.temp_password) setInviteOpen(false);
+    } catch (err) {
+      setInviteError(apiErrorMessage(err));
+    }
+  });
+
   return (
     <div className="space-y-5">
       {canManageStatus ? (
         <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" onClick={openEdit}>
+            <Pencil className="h-4 w-4" /> Edit details
+          </Button>
           {wedding.status !== "published" ? (
             <Button size="sm" onClick={() => transition("published")}>
               Publish
@@ -141,14 +258,28 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Members</CardTitle>
+              {canManageStatus ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setInviteError(null);
+                    setInvitedCredentials(null);
+                    inviteForm.reset({ name: "", email: "", member_role: "groom" });
+                    setInviteOpen(true);
+                  }}
+                >
+                  <UserPlus className="h-4 w-4" /> Add member
+                </Button>
+              ) : null}
             </CardHeader>
             <CardContent className="space-y-2">
-              {(wedding.members ?? []).length === 0 ? (
+              {(members ?? []).length === 0 ? (
                 <p className="text-sm text-zinc-500">No members added yet.</p>
               ) : (
-                (wedding.members ?? []).map((member) => (
+                (members ?? []).map((member) => (
                   <div
                     key={member.id}
                     className="flex items-center justify-between rounded-lg border border-zinc-100 px-3 py-2"
@@ -198,6 +329,140 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
           ) : null}
         </div>
       </div>
+
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="Edit wedding details">
+        <form onSubmit={onEdit} className="space-y-3">
+          <div>
+            <Label htmlFor="e-name">Wedding name</Label>
+            <Input id="e-name" {...editForm.register("wedding_name", { required: true })} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="e-bride">Bride name</Label>
+              <Input id="e-bride" {...editForm.register("bride_name", { required: true })} />
+            </div>
+            <div>
+              <Label htmlFor="e-groom">Groom name</Label>
+              <Input id="e-groom" {...editForm.register("groom_name", { required: true })} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="e-date">Date</Label>
+              <Input id="e-date" type="date" {...editForm.register("wedding_date")} />
+            </div>
+            <div>
+              <Label htmlFor="e-time">Time</Label>
+              <Input id="e-time" type="time" {...editForm.register("wedding_time")} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="e-phone">Phone</Label>
+              <Input id="e-phone" {...editForm.register("phone")} />
+            </div>
+            <div>
+              <Label htmlFor="e-email">Email</Label>
+              <Input id="e-email" type="email" {...editForm.register("email")} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="e-ceremony">Ceremony venue</Label>
+            <Input id="e-ceremony" {...editForm.register("ceremony_venue")} />
+          </div>
+          <div>
+            <Label htmlFor="e-reception">Reception venue</Label>
+            <Input id="e-reception" {...editForm.register("reception_venue")} />
+          </div>
+          <div>
+            <Label htmlFor="e-map">Google Maps link</Label>
+            <Input id="e-map" {...editForm.register("google_map_link")} />
+          </div>
+          <div>
+            <Label htmlFor="e-story">Your story</Label>
+            <Textarea id="e-story" rows={3} {...editForm.register("story_description")} />
+          </div>
+          {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateWedding.isPending}>
+              {updateWedding.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} title="Add member">
+        {invitedCredentials ? (
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-600">
+              Member added. Share these login details with them:
+            </p>
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm">
+              <p>
+                <span className="font-medium">Email:</span> {invitedCredentials.email}
+              </p>
+              <p>
+                <span className="font-medium">Temporary password:</span>{" "}
+                <span className="font-mono">{invitedCredentials.password}</span>
+              </p>
+            </div>
+            <p className="text-xs text-zinc-500">
+              They can change this password after logging in.
+            </p>
+            <div className="flex justify-end pt-1">
+              <Button
+                type="button"
+                onClick={() => {
+                  setInvitedCredentials(null);
+                  setInviteOpen(false);
+                }}
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={onInvite} className="space-y-3">
+            <p className="text-sm text-zinc-500">
+              Add your partner or organizer. If they don&apos;t have an account
+              yet, we&apos;ll create one and give you a temporary password to
+              share.
+            </p>
+            <div>
+              <Label htmlFor="i-name">Name</Label>
+              <Input id="i-name" {...inviteForm.register("name", { required: true })} />
+            </div>
+            <div>
+              <Label htmlFor="i-email">Email</Label>
+              <Input
+                id="i-email"
+                type="email"
+                {...inviteForm.register("email", { required: true })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="i-role">Role</Label>
+              <Select id="i-role" {...inviteForm.register("member_role")}>
+                <option value="bride">Bride</option>
+                <option value="groom">Groom</option>
+                <option value="organizer">Organizer</option>
+              </Select>
+            </div>
+            {inviteError ? <p className="text-sm text-red-600">{inviteError}</p> : null}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={inviteMember.isPending}>
+                {inviteMember.isPending ? "Adding..." : "Add Member"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Dialog>
     </div>
   );
 }

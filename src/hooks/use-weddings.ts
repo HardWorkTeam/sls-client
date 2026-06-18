@@ -78,3 +78,15 @@ export function useChangeWeddingStatus(id: number) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: weddingKeys.all }),
   });
 }
+
+export function useInviteMember(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { name: string; email: string; member_role: string }) =>
+      weddingService.inviteMember(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: weddingKeys.members(id) });
+      queryClient.invalidateQueries({ queryKey: weddingKeys.all });
+    },
+  });
+}
