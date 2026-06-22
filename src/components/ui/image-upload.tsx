@@ -24,8 +24,14 @@ export function ImageUpload({
   const [error, setError] = useState<string | null>(null);
   const [urlMode, setUrlMode] = useState(false);
 
+  const MAX_BYTES = 50 * 1024 * 1024; // 50 MB — matches backend rule
+
   const handleFile = async (file: File) => {
     setError(null);
+    if (file.size > MAX_BYTES) {
+      setError(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 50 MB.`);
+      return;
+    }
     setUploading(true);
     try {
       const item = await galleryService.upload(weddingId, file, { is_public: true });
