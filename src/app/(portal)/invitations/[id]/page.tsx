@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLoader } from "@/components/ui/spinner";
@@ -168,12 +169,18 @@ export default function InvitationEditPage() {
 
     const ext = s.couple_extended as Record<string, Record<string, string>> | undefined;
     if (ext?.groom) {
+      setGroomNameKh(ext.groom.nameKh ?? "");
+      setGroomNameEn(ext.groom.nameEn ?? "");
+      setGroomPhoto(ext.groom.photo ?? "");
       setGroomFather(ext.groom.father ?? "");
       setGroomFatherEn(ext.groom.fatherEn ?? "");
       setGroomMother(ext.groom.mother ?? "");
       setGroomMotherEn(ext.groom.motherEn ?? "");
     }
     if (ext?.bride) {
+      setBrideNameKh(ext.bride.nameKh ?? "");
+      setBrideNameEn(ext.bride.nameEn ?? "");
+      setBridePhoto(ext.bride.photo ?? "");
       setBrideFather(ext.bride.father ?? "");
       setBrideFatherEn(ext.bride.fatherEn ?? "");
       setBrideMother(ext.bride.mother ?? "");
@@ -183,12 +190,6 @@ export default function InvitationEditPage() {
 
   useEffect(() => {
     if (!wedding) return;
-    setGroomNameKh(wedding.groom_name ?? "");
-    setGroomNameEn(wedding.groom_name ?? "");
-    setGroomPhoto(wedding.groom_photo_path ?? "");
-    setBrideNameKh(wedding.bride_name ?? "");
-    setBrideNameEn(wedding.bride_name ?? "");
-    setBridePhoto(wedding.bride_photo_path ?? "");
     setWeddingDate(wedding.wedding_date ?? "");
     setWeddingTime(wedding.wedding_time ?? "");
     setCeremonyVenue(wedding.ceremony_venue ?? "");
@@ -204,12 +205,8 @@ export default function InvitationEditPage() {
     setSaveState("idle");
     try {
       await Promise.all([
-        // 1. Save wedding fields
+        // 1. Save wedding-level event fields (names/photos live in invitation settings)
         updateWedding.mutateAsync({
-          groom_name: groomNameKh,
-          bride_name: brideNameKh,
-          groom_photo_path: groomPhoto || null,
-          bride_photo_path: bridePhoto || null,
           wedding_date: weddingDate || null,
           wedding_time: weddingTime || null,
           ceremony_venue: ceremonyVenue || null,
@@ -240,6 +237,7 @@ export default function InvitationEditPage() {
                 groom: {
                   nameKh: groomNameKh,
                   nameEn: groomNameEn,
+                  photo: groomPhoto,
                   father: groomFather,
                   fatherEn: groomFatherEn,
                   mother: groomMother,
@@ -248,6 +246,7 @@ export default function InvitationEditPage() {
                 bride: {
                   nameKh: brideNameKh,
                   nameEn: brideNameEn,
+                  photo: bridePhoto,
                   father: brideFather,
                   fatherEn: brideFatherEn,
                   mother: brideMother,
@@ -337,8 +336,8 @@ export default function InvitationEditPage() {
             <FieldRow label="Invitation Title">
               <TextInput value={title} onChange={setTitle} placeholder="You are invited to our wedding" />
             </FieldRow>
-            <FieldRow label="Cover Image URL">
-              <TextInput value={coverImagePath} onChange={setCoverImagePath} placeholder="https://…" />
+            <FieldRow label="Cover Image">
+              <ImageUpload weddingId={wedding.id} value={coverImagePath} onChange={setCoverImagePath} placeholder="https://… or upload a cover photo" />
             </FieldRow>
           </Accordion>
 
@@ -394,8 +393,8 @@ export default function InvitationEditPage() {
                 <div key={person} className="mb-6 last:mb-0 space-y-3 rounded-lg border border-stone-200 bg-stone-50/50 p-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-stone-800 capitalize">{person}</h3>
 
-                  <FieldRow label="Photo URL">
-                    <TextInput value={photo} onChange={setPhoto} placeholder="https://…" />
+                  <FieldRow label="Photo">
+                    <ImageUpload weddingId={wedding.id} value={photo} onChange={setPhoto} placeholder="https://… or upload" />
                   </FieldRow>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -472,28 +471,31 @@ export default function InvitationEditPage() {
             <FieldRow label="Account Number">
               <TextInput value={accountNumber} onChange={setAccountNumber} />
             </FieldRow>
-            <FieldRow label="QR Code Image URL">
-              <TextInput value={bankQrUrl} onChange={setBankQrUrl} placeholder="https://…" />
+            <FieldRow label="QR Code Image">
+              <ImageUpload weddingId={wedding.id} value={bankQrUrl} onChange={setBankQrUrl} placeholder="https://… or upload QR image" />
             </FieldRow>
           </Accordion>
 
           {/* 8. Gallery */}
           <Accordion title="8. Gallery (Photos)">
-            <div className="space-y-2">
+            <div className="space-y-4">
               {gallery.map((url, i) => (
-                <div key={i} className="flex gap-2">
-                  <input value={url} onChange={(e) => updateGalleryItem(i, e.target.value)}
-                    placeholder="https://…"
-                    className="flex-1 rounded-md border border-stone-200 bg-stone-50 p-2 text-xs outline-none focus:border-emerald-400" />
+                <div key={i} className="relative rounded-lg border border-stone-200 bg-stone-50/50 p-3">
                   <button type="button" onClick={() => removeGalleryItem(i)}
-                    className="px-2 text-xs font-semibold text-red-500 hover:text-red-700">
-                    Del
+                    className="absolute right-2 top-2 text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-700">
+                    Remove
                   </button>
+                  <ImageUpload
+                    weddingId={wedding.id}
+                    value={url}
+                    onChange={(v) => updateGalleryItem(i, v)}
+                    placeholder="https://… or upload"
+                  />
                 </div>
               ))}
               <button type="button" onClick={addGalleryItem}
                 className="w-full rounded-md bg-stone-100 py-2 text-xs font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200">
-                + Add Photo URL
+                + Add Photo
               </button>
             </div>
           </Accordion>
