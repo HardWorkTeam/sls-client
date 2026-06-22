@@ -117,13 +117,6 @@ export default function InvitationEditPage() {
   // Gallery URLs (stored in invitation settings)
   const [gallery, setGallery] = useState<string[]>([]);
 
-  // ── Event schedule (stored in invitation settings) ───────────────────────
-  const [weddingDate, setWeddingDate] = useState("");
-  const [weddingTime, setWeddingTime] = useState("");
-  const [ceremonyVenue, setCeremonyVenue] = useState("");
-  const [receptionVenue, setReceptionVenue] = useState("");
-  const [mapsLink, setMapsLink] = useState("");
-
   // ── Couple info (stored in invitation settings) ───────────────────────────
   const [groomNameKh, setGroomNameKh] = useState("");
   const [groomNameEn, setGroomNameEn] = useState("");
@@ -141,6 +134,12 @@ export default function InvitationEditPage() {
   const [brideMotherEn, setBrideMotherEn] = useState("");
   const [bridePhoto, setBridePhoto] = useState("");
 
+  // ── Wedding-level state ───────────────────────────────────────────────────
+  const [weddingDate, setWeddingDate] = useState("");
+  const [weddingTime, setWeddingTime] = useState("");
+  const [ceremonyVenue, setCeremonyVenue] = useState("");
+  const [receptionVenue, setReceptionVenue] = useState("");
+  const [mapsLink, setMapsLink] = useState("");
   const [storyDescription, setStoryDescription] = useState("");
 
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -169,15 +168,6 @@ export default function InvitationEditPage() {
       setBankQrUrl(bank.qr_url ?? "");
     }
 
-    const sched = s.event_schedule as Record<string, string> | undefined;
-    if (sched) {
-      setWeddingDate(sched.date ?? "");
-      setWeddingTime(sched.time ?? "");
-      setCeremonyVenue(sched.ceremony_venue ?? "");
-      setReceptionVenue(sched.reception_venue ?? "");
-      setMapsLink(sched.maps_link ?? "");
-    }
-
     const ext = s.couple_extended as Record<string, Record<string, string>> | undefined;
     if (ext?.groom) {
       setGroomNameKh(ext.groom.nameKh ?? "");
@@ -201,6 +191,11 @@ export default function InvitationEditPage() {
 
   useEffect(() => {
     if (!wedding) return;
+    setWeddingDate(wedding.wedding_date ?? "");
+    setWeddingTime(wedding.wedding_time ?? "");
+    setCeremonyVenue(wedding.ceremony_venue ?? "");
+    setReceptionVenue(wedding.reception_venue ?? "");
+    setMapsLink(wedding.google_map_link ?? "");
     setStoryDescription(wedding.story_description ?? "");
   }, [wedding]);
 
@@ -212,6 +207,11 @@ export default function InvitationEditPage() {
     try {
       await Promise.all([
         updateWedding.mutateAsync({
+          wedding_date: weddingDate || null,
+          wedding_time: weddingTime || null,
+          ceremony_venue: ceremonyVenue || null,
+          reception_venue: receptionVenue || null,
+          google_map_link: mapsLink || null,
           story_description: storyDescription || null,
         }),
         // 2. Save invitation fields + settings
@@ -227,13 +227,6 @@ export default function InvitationEditPage() {
               invitation_text_kh: textKh,
               invitation_text_en: textEn,
               gallery_urls: gallery.filter(Boolean),
-              event_schedule: {
-                date: weddingDate,
-                time: weddingTime,
-                ceremony_venue: ceremonyVenue,
-                reception_venue: receptionVenue,
-                maps_link: mapsLink,
-              },
               bank_account: {
                 bank: bankName,
                 name: accountName,
