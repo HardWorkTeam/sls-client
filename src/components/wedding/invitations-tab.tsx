@@ -10,8 +10,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { PageLoader } from "@/components/ui/spinner";
+import { TemplatePicker } from "@/components/wedding/TemplatePicker";
 import { useTemplates } from "@/hooks/use-admin";
 import {
   useCreateInvitation,
@@ -226,8 +226,9 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
         onClose={() => setCreateOpen(false)}
         title="Create Invitation"
         description="A unique public URL and QR code are generated automatically."
+        className="max-w-2xl"
       >
-        <form onSubmit={onCreate} className="space-y-3">
+        <form onSubmit={onCreate} className="space-y-4">
           <div>
             <Label htmlFor="invitation-title">Title</Label>
             <Input
@@ -237,15 +238,12 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
             />
           </div>
           <div>
-            <Label htmlFor="invitation-template">Template</Label>
-            <Select id="invitation-template" {...createForm.register("invitation_template_id")}>
-              <option value="">No template</option>
-              {(templates ?? []).map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </Select>
+            <Label className="mb-2 block">Template</Label>
+            <TemplatePicker
+              templates={templates ?? []}
+              value={createForm.watch("invitation_template_id")}
+              onChange={(id) => createForm.setValue("invitation_template_id", id)}
+            />
           </div>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-2">
@@ -265,8 +263,9 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
         onClose={() => setEditTarget(null)}
         title="Edit Invitation"
         description="Update the title or switch to a different template."
+        className="max-w-2xl"
       >
-        <form onSubmit={onEdit} className="space-y-3">
+        <form onSubmit={onEdit} className="space-y-4">
           <div>
             <Label htmlFor="edit-invitation-title">Title</Label>
             <Input
@@ -276,15 +275,12 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
             />
           </div>
           <div>
-            <Label htmlFor="edit-invitation-template">Template</Label>
-            <Select id="edit-invitation-template" {...editForm.register("invitation_template_id")}>
-              <option value="">No template</option>
-              {(templates ?? []).map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-            </Select>
+            <Label className="mb-2 block">Template</Label>
+            <TemplatePicker
+              templates={templates ?? []}
+              value={editForm.watch("invitation_template_id")}
+              onChange={(id) => editForm.setValue("invitation_template_id", id)}
+            />
           </div>
           {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
           <div className="flex justify-end gap-2 pt-2">
