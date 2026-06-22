@@ -1,6 +1,7 @@
 "use client";
 
-import { Copy, ExternalLink, Pencil, Plus, QrCode, Send, Trash2 } from "lucide-react";
+import { Copy, Eye, Plus, QrCode, Send, Trash2, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge, statusVariant } from "@/components/ui/badge";
@@ -18,10 +19,8 @@ import {
   useDeleteInvitation,
   useInvitations,
   usePublishInvitation,
-  useUpdateInvitation,
 } from "@/hooks/use-invitations";
 import { apiErrorMessage } from "@/lib/api";
-import type { Invitation } from "@/types/api";
 import { invitationService } from "@/services/invitation-service";
 
 interface InvitationForm {
@@ -30,32 +29,26 @@ interface InvitationForm {
 }
 
 export function InvitationsTab({ weddingId }: { weddingId: number }) {
+  const router = useRouter();
   const { data: invitations, isLoading } = useInvitations(weddingId);
   const { data: templates } = useTemplates();
   const createInvitation = useCreateInvitation(weddingId);
-  const updateInvitation = useUpdateInvitation(weddingId);
   const publishInvitation = usePublishInvitation(weddingId);
   const deleteInvitation = useDeleteInvitation(weddingId);
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Invitation | null>(null);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [editError, setEditError] = useState<string | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
 
   const createForm = useForm<InvitationForm>({
     defaultValues: { title: "", invitation_template_id: "" },
   });
 
-  const editForm = useForm<InvitationForm>({
-    defaultValues: { title: "", invitation_template_id: "" },
-  });
-
   const onCreate = createForm.handleSubmit(async (values) => {
     setError(null);
     try {
-      await createInvitation.mutateAsync({
+      const created = await createInvitation.mutateAsync({
         title: values.title || null,
         invitation_template_id: values.invitation_template_id
           ? Number(values.invitation_template_id)
@@ -63,38 +56,10 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
       });
       createForm.reset();
       setCreateOpen(false);
+      // Navigate to the editor right away
+      router.push(`/invitations/${created.id}`);
     } catch (err) {
       setError(apiErrorMessage(err));
-    }
-  });
-
-  const openEdit = (invitation: Invitation) => {
-    setEditTarget(invitation);
-    setEditError(null);
-    editForm.reset({
-      title: invitation.title ?? "",
-      invitation_template_id: invitation.invitation_template_id
-        ? String(invitation.invitation_template_id)
-        : "",
-    });
-  };
-
-  const onEdit = editForm.handleSubmit(async (values) => {
-    if (!editTarget) return;
-    setEditError(null);
-    try {
-      await updateInvitation.mutateAsync({
-        invitationId: editTarget.id,
-        payload: {
-          title: values.title || null,
-          invitation_template_id: values.invitation_template_id
-            ? Number(values.invitation_template_id)
-            : null,
-        },
-      });
-      setEditTarget(null);
-    } catch (err) {
-      setEditError(apiErrorMessage(err));
     }
   });
 
@@ -122,7 +87,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
       ) : !invitations || invitations.length === 0 ? (
         <EmptyState
           title="No invitations yet"
-          description="Create a digital invitation, publish it, then share the link or QR code with guests."
+          description="Create a digital invitation, choose a template, then publish and share the link or QR code."
           action={
             <Button onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4" /> Create Invitation
@@ -134,6 +99,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
           {invitations.map((invitation) => (
             <Card key={invitation.id}>
               <CardContent className="space-y-3 p-5">
+                {/* Header row */}
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-zinc-900">
@@ -143,21 +109,35 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
                       {invitation.invitation_code}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    {/* Edit → full-page editor */}
                     <button
                       type="button"
-                      className="text-zinc-400 hover:text-zinc-700"
-                      onClick={() => openEdit(invitation)}
+                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                      onClick={() => router.push(`/invitations/${invitation.id}`)}
                       aria-label="Edit invitation"
+                      title="Edit"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
+                    {/* View → open live URL */}
+                    <a
+                      href={invitation.public_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                      aria-label="View invitation"
+                      title="View live"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
                     <Badge variant={statusVariant(invitation.status)}>
                       <span className="capitalize">{invitation.status}</span>
                     </Badge>
                   </div>
                 </div>
 
+                {/* Meta */}
                 <div className="text-sm text-zinc-600">
                   <p>Template: {invitation.template?.name ?? "None"}</p>
                   <p>
@@ -166,6 +146,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
                   </p>
                 </div>
 
+                {/* URL row */}
                 <div className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2">
                   <p className="flex-1 truncate font-mono text-xs text-zinc-600">
                     {invitation.public_url}
@@ -183,6 +164,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
                   ) : null}
                 </div>
 
+                {/* Action buttons */}
                 <div className="flex flex-wrap gap-2">
                   {invitation.status !== "published" ? (
                     <Button
@@ -192,13 +174,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
                     >
                       <Send className="h-4 w-4" /> Publish
                     </Button>
-                  ) : (
-                    <a href={invitation.public_url} target="_blank" rel="noreferrer">
-                      <Button size="sm" variant="secondary">
-                        <ExternalLink className="h-4 w-4" /> Open
-                      </Button>
-                    </a>
-                  )}
+                  ) : null}
                   <Button size="sm" variant="outline" onClick={() => showQr(invitation.id)}>
                     <QrCode className="h-4 w-4" /> QR Code
                   </Button>
@@ -225,7 +201,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="Create Invitation"
-        description="A unique public URL and QR code are generated automatically."
+        description="Pick a template now or change it later in the editor."
         className="max-w-2xl"
       >
         <form onSubmit={onCreate} className="space-y-4">
@@ -251,44 +227,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
               Cancel
             </Button>
             <Button type="submit" disabled={createInvitation.isPending}>
-              {createInvitation.isPending ? "Creating..." : "Create"}
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      {/* ── Edit dialog ── */}
-      <Dialog
-        open={editTarget !== null}
-        onClose={() => setEditTarget(null)}
-        title="Edit Invitation"
-        description="Update the title or switch to a different template."
-        className="max-w-2xl"
-      >
-        <form onSubmit={onEdit} className="space-y-4">
-          <div>
-            <Label htmlFor="edit-invitation-title">Title</Label>
-            <Input
-              id="edit-invitation-title"
-              placeholder="You are invited to our wedding"
-              {...editForm.register("title")}
-            />
-          </div>
-          <div>
-            <Label className="mb-2 block">Template</Label>
-            <TemplatePicker
-              templates={templates ?? []}
-              value={editForm.watch("invitation_template_id")}
-              onChange={(id) => editForm.setValue("invitation_template_id", id)}
-            />
-          </div>
-          {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateInvitation.isPending}>
-              {updateInvitation.isPending ? "Saving..." : "Save"}
+              {createInvitation.isPending ? "Creating…" : "Create & Edit"}
             </Button>
           </div>
         </form>
