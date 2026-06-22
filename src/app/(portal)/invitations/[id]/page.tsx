@@ -16,32 +16,21 @@ import {
   useUpdateInvitation,
 } from "@/hooks/use-invitations";
 import { useMyWedding } from "@/hooks/use-my-wedding";
+import { useUpdateWedding } from "@/hooks/use-weddings";
 
-// ── Section keys matching InvitationData.sectionsVisibility ──────────────────
+// ── Section keys ─────────────────────────────────────────────────────────────
 const SECTION_KEYS = [
-  "Cover",
-  "CoupleInfo",
-  "LoveStory",
-  "Schedule",
-  "Gallery",
-  "Location",
-  "GiftRegistry",
-  "RSVP",
+  "Cover", "CoupleInfo", "LoveStory", "Schedule",
+  "Gallery", "Location", "GiftRegistry", "RSVP",
 ] as const;
 type SectionKey = (typeof SECTION_KEYS)[number];
 
 const DEFAULT_SECTIONS: Record<SectionKey, boolean> = {
-  Cover: true,
-  CoupleInfo: true,
-  LoveStory: true,
-  Schedule: true,
-  Gallery: true,
-  Location: true,
-  GiftRegistry: true,
-  RSVP: true,
+  Cover: true, CoupleInfo: true, LoveStory: true, Schedule: true,
+  Gallery: true, Location: true, GiftRegistry: true, RSVP: true,
 };
 
-// ── Accordion ────────────────────────────────────────────────────────────────
+// ── Accordion ─────────────────────────────────────────────────────────────────
 function Accordion({
   title,
   children,
@@ -71,72 +60,204 @@ function Accordion({
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Field helpers ─────────────────────────────────────────────────────────────
+function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function TextInput({
+  value, onChange, placeholder,
+}: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <Input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="bg-white text-xs"
+    />
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function InvitationEditPage() {
   const params = useParams();
   const invitationId = Number(params.id);
 
   const { wedding, isLoading: weddingLoading } = useMyWedding();
-  const { data: invitations, isLoading: invLoading } = useInvitations(
-    wedding?.id ?? 0,
-  );
+  const { data: invitations, isLoading: invLoading } = useInvitations(wedding?.id ?? 0);
   const { data: templates } = useTemplates();
   const updateInvitation = useUpdateInvitation(wedding?.id ?? 0);
+  const updateWedding = useUpdateWedding(wedding?.id ?? 0);
   const publishInvitation = usePublishInvitation(wedding?.id ?? 0);
 
   const invitation = invitations?.find((i) => i.id === invitationId);
 
-  // ── Local edit state ───────────────────────────────────────────────────────
+  // ── Invitation-level state ────────────────────────────────────────────────
   const [templateId, setTemplateId] = useState("");
   const [title, setTitle] = useState("");
   const [coverImagePath, setCoverImagePath] = useState("");
   const [sections, setSections] = useState<Record<SectionKey, boolean>>(DEFAULT_SECTIONS);
-  const [textKh, setTextKh] = useState(
-    "មានកិត្តិយសសូមគោរពអញ្ជើញ ចូលរួមជាភ្ញៀវកិត្តិយស",
-  );
-  const [textEn, setTextEn] = useState(
-    "CORDIALLY REQUEST THE HONOR OF YOUR PRESENCE",
-  );
+  const [textKh, setTextKh] = useState("មានកិត្តិយសសូមគោរពអញ្ជើញ ចូលរួមជាភ្ញៀវកិត្តិយស");
+  const [textEn, setTextEn] = useState("CORDIALLY REQUEST THE HONOR OF YOUR PRESENCE");
+
+  // Gift registry (stored in invitation settings)
+  const [bankName, setBankName] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [bankQrUrl, setBankQrUrl] = useState("");
+
+  // Gallery URLs (stored in invitation settings)
+  const [gallery, setGallery] = useState<string[]>([]);
+
+  // ── Wedding-level state ───────────────────────────────────────────────────
+  const [groomNameKh, setGroomNameKh] = useState("");
+  const [groomNameEn, setGroomNameEn] = useState("");
+  const [groomFather, setGroomFather] = useState("");
+  const [groomFatherEn, setGroomFatherEn] = useState("");
+  const [groomMother, setGroomMother] = useState("");
+  const [groomMotherEn, setGroomMotherEn] = useState("");
+  const [groomPhoto, setGroomPhoto] = useState("");
+
+  const [brideNameKh, setBrideNameKh] = useState("");
+  const [brideNameEn, setBrideNameEn] = useState("");
+  const [brideFather, setBrideFather] = useState("");
+  const [brideFatherEn, setBrideFatherEn] = useState("");
+  const [brideMother, setBrideMother] = useState("");
+  const [brideMotherEn, setBrideMotherEn] = useState("");
+  const [bridePhoto, setBridePhoto] = useState("");
+
+  const [weddingDate, setWeddingDate] = useState("");
+  const [weddingTime, setWeddingTime] = useState("");
+  const [ceremonyVenue, setCeremonyVenue] = useState("");
+  const [receptionVenue, setReceptionVenue] = useState("");
+  const [mapsLink, setMapsLink] = useState("");
+  const [storyDescription, setStoryDescription] = useState("");
+
+  // ── UI state ──────────────────────────────────────────────────────────────
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
 
-  // Initialise form from API data
+  // ── Initialise from API data ──────────────────────────────────────────────
   useEffect(() => {
     if (!invitation) return;
-    setTemplateId(
-      invitation.invitation_template_id
-        ? String(invitation.invitation_template_id)
-        : "",
-    );
+    setTemplateId(invitation.invitation_template_id ? String(invitation.invitation_template_id) : "");
     setTitle(invitation.title ?? "");
     setCoverImagePath(invitation.cover_image_path ?? "");
-    const s = invitation.settings as Record<string, unknown> | null;
-    if (s?.sections) setSections((prev) => ({ ...prev, ...(s.sections as Record<SectionKey, boolean>) }));
-    if (typeof s?.invitation_text_kh === "string") setTextKh(s.invitation_text_kh);
-    if (typeof s?.invitation_text_en === "string") setTextEn(s.invitation_text_en);
+
+    const s = (invitation.settings ?? {}) as Record<string, unknown>;
+    if (s.sections) setSections((p) => ({ ...p, ...(s.sections as Record<SectionKey, boolean>) }));
+    if (typeof s.invitation_text_kh === "string") setTextKh(s.invitation_text_kh);
+    if (typeof s.invitation_text_en === "string") setTextEn(s.invitation_text_en);
+    if (Array.isArray(s.gallery_urls)) setGallery(s.gallery_urls as string[]);
+
+    const bank = s.bank_account as Record<string, string> | undefined;
+    if (bank) {
+      setBankName(bank.bank ?? "");
+      setAccountName(bank.name ?? "");
+      setAccountNumber(bank.number ?? "");
+      setBankQrUrl(bank.qr_url ?? "");
+    }
+
+    const ext = s.couple_extended as Record<string, Record<string, string>> | undefined;
+    if (ext?.groom) {
+      setGroomFather(ext.groom.father ?? "");
+      setGroomFatherEn(ext.groom.fatherEn ?? "");
+      setGroomMother(ext.groom.mother ?? "");
+      setGroomMotherEn(ext.groom.motherEn ?? "");
+    }
+    if (ext?.bride) {
+      setBrideFather(ext.bride.father ?? "");
+      setBrideFatherEn(ext.bride.fatherEn ?? "");
+      setBrideMother(ext.bride.mother ?? "");
+      setBrideMotherEn(ext.bride.motherEn ?? "");
+    }
   }, [invitation]);
 
-  // ── Save handler ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!wedding) return;
+    setGroomNameKh(wedding.groom_name ?? "");
+    setGroomNameEn(wedding.groom_name ?? "");
+    setGroomPhoto(wedding.groom_photo_path ?? "");
+    setBrideNameKh(wedding.bride_name ?? "");
+    setBrideNameEn(wedding.bride_name ?? "");
+    setBridePhoto(wedding.bride_photo_path ?? "");
+    setWeddingDate(wedding.wedding_date ?? "");
+    setWeddingTime(wedding.wedding_time ?? "");
+    setCeremonyVenue(wedding.ceremony_venue ?? "");
+    setReceptionVenue(wedding.reception_venue ?? "");
+    setMapsLink(wedding.google_map_link ?? "");
+    setStoryDescription(wedding.story_description ?? "");
+  }, [wedding]);
+
+  // ── Save all ──────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!invitation) return;
+    if (!invitation || !wedding) return;
     setSaving(true);
     setSaveState("idle");
     try {
-      await updateInvitation.mutateAsync({
-        invitationId: invitation.id,
-        payload: {
-          invitation_template_id: templateId ? Number(templateId) : null,
-          title: title || null,
-          cover_image_path: coverImagePath || null,
-          settings: {
-            ...((invitation.settings as Record<string, unknown>) ?? {}),
-            sections,
-            invitation_text_kh: textKh,
-            invitation_text_en: textEn,
+      await Promise.all([
+        // 1. Save wedding fields
+        updateWedding.mutateAsync({
+          groom_name: groomNameKh,
+          bride_name: brideNameKh,
+          groom_photo_path: groomPhoto || null,
+          bride_photo_path: bridePhoto || null,
+          wedding_date: weddingDate || null,
+          wedding_time: weddingTime || null,
+          ceremony_venue: ceremonyVenue || null,
+          reception_venue: receptionVenue || null,
+          google_map_link: mapsLink || null,
+          story_description: storyDescription || null,
+        }),
+        // 2. Save invitation fields + settings
+        updateInvitation.mutateAsync({
+          invitationId: invitation.id,
+          payload: {
+            invitation_template_id: templateId ? Number(templateId) : null,
+            title: title || null,
+            cover_image_path: coverImagePath || null,
+            settings: {
+              ...((invitation.settings as Record<string, unknown>) ?? {}),
+              sections,
+              invitation_text_kh: textKh,
+              invitation_text_en: textEn,
+              gallery_urls: gallery.filter(Boolean),
+              bank_account: {
+                bank: bankName,
+                name: accountName,
+                number: accountNumber,
+                qr_url: bankQrUrl,
+              },
+              couple_extended: {
+                groom: {
+                  nameKh: groomNameKh,
+                  nameEn: groomNameEn,
+                  father: groomFather,
+                  fatherEn: groomFatherEn,
+                  mother: groomMother,
+                  motherEn: groomMotherEn,
+                },
+                bride: {
+                  nameKh: brideNameKh,
+                  nameEn: brideNameEn,
+                  father: brideFather,
+                  fatherEn: brideFatherEn,
+                  mother: brideMother,
+                  motherEn: brideMotherEn,
+                },
+              },
+            },
           },
-        },
-      });
+        }),
+      ]);
       setSaveState("saved");
       setPreviewKey((k) => k + 1);
       setTimeout(() => setSaveState("idle"), 2500);
@@ -147,16 +268,14 @@ export default function InvitationEditPage() {
     }
   };
 
-  // ── Loading / not-found states ─────────────────────────────────────────────
-  if (weddingLoading || invLoading) {
-    return <PageLoader label="Loading invitation..." />;
-  }
+  // ── Loading / error states ────────────────────────────────────────────────
+  if (weddingLoading || invLoading) return <PageLoader label="Loading invitation…" />;
   if (!wedding || !invitation) {
     return (
       <div className="p-8 text-center text-zinc-400">
         Invitation not found.{" "}
         <Link href="/invitations" className="text-emerald-600 underline">
-          Back to invitations
+          Back
         </Link>
       </div>
     );
@@ -164,29 +283,29 @@ export default function InvitationEditPage() {
 
   const isPublished = invitation.status === "published";
 
+  // Gallery helpers
+  const updateGalleryItem = (i: number, v: string) =>
+    setGallery((g) => g.map((u, idx) => (idx === i ? v : u)));
+  const removeGalleryItem = (i: number) =>
+    setGallery((g) => g.filter((_, idx) => idx !== i));
+  const addGalleryItem = () => setGallery((g) => [...g, ""]);
+
   return (
-    // Escape the portal layout padding with negative margins, fill viewport
     <div className="-m-4 md:-m-6 lg:-m-8 flex overflow-hidden h-[calc(100dvh-4rem)] md:h-dvh">
 
-      {/* ── LEFT: scrollable form sidebar ── */}
-      <div className="flex h-full w-full flex-col overflow-hidden border-r border-stone-200 bg-white shadow-xl md:w-[440px] md:flex-shrink-0">
+      {/* ── LEFT: scrollable form sidebar ──────────────────────────────────── */}
+      <div className="flex h-full w-full flex-col overflow-hidden border-r border-stone-200 bg-white shadow-xl md:w-[450px] md:flex-shrink-0">
 
         {/* Sticky header */}
         <div className="sticky top-0 z-20 border-b border-stone-100 bg-stone-50 px-5 py-4">
-          <Link
-            href="/invitations"
-            className="mb-1 flex items-center gap-1 text-xs text-stone-500 hover:text-stone-800"
-          >
+          <Link href="/invitations"
+            className="mb-1 flex items-center gap-1 text-xs text-stone-500 hover:text-stone-800">
             <ArrowLeft className="h-3 w-3" /> Back to invitations
           </Link>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-base font-bold tracking-wide text-rose-800">
-                Invitation Editor
-              </h1>
-              <p className="font-mono text-xs text-stone-500">
-                {invitation.invitation_code}
-              </p>
+              <h1 className="text-base font-bold tracking-wide text-rose-800">Invitation Editor</h1>
+              <p className="font-mono text-xs text-stone-500">{invitation.invitation_code}</p>
             </div>
             <div className="flex shrink-0 gap-2">
               {isPublished ? (
@@ -196,12 +315,9 @@ export default function InvitationEditPage() {
                   </Button>
                 </a>
               ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
+                <Button size="sm" variant="secondary"
                   disabled={publishInvitation.isPending}
-                  onClick={() => publishInvitation.mutate(invitation.id)}
-                >
+                  onClick={() => publishInvitation.mutate(invitation.id)}>
                   <Send className="h-3.5 w-3.5" />
                   {publishInvitation.isPending ? "Publishing…" : "Publish"}
                 </Button>
@@ -210,37 +326,20 @@ export default function InvitationEditPage() {
           </div>
         </div>
 
-        {/* Scrollable form body */}
+        {/* Scrollable accordion sections */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
 
           {/* 1. Template & Title */}
           <Accordion title="1. Template & Title" defaultOpen>
-            <div>
-              <Label className="mb-2 block">Template</Label>
-              <TemplatePicker
-                templates={templates ?? []}
-                value={templateId}
-                onChange={setTemplateId}
-              />
-            </div>
-            <div>
-              <Label htmlFor="inv-title">Invitation Title</Label>
-              <Input
-                id="inv-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="You are invited to our wedding"
-              />
-            </div>
-            <div>
-              <Label htmlFor="inv-cover">Cover Image URL</Label>
-              <Input
-                id="inv-cover"
-                value={coverImagePath}
-                onChange={(e) => setCoverImagePath(e.target.value)}
-                placeholder="https://..."
-              />
-            </div>
+            <FieldRow label="Template">
+              <TemplatePicker templates={templates ?? []} value={templateId} onChange={setTemplateId} />
+            </FieldRow>
+            <FieldRow label="Invitation Title">
+              <TextInput value={title} onChange={setTitle} placeholder="You are invited to our wedding" />
+            </FieldRow>
+            <FieldRow label="Cover Image URL">
+              <TextInput value={coverImagePath} onChange={setCoverImagePath} placeholder="https://…" />
+            </FieldRow>
           </Accordion>
 
           {/* 2. Section Visibility */}
@@ -251,10 +350,8 @@ export default function InvitationEditPage() {
                   <input
                     type="checkbox"
                     checked={sections[key]}
-                    onChange={() =>
-                      setSections((prev) => ({ ...prev, [key]: !prev[key] }))
-                    }
-                    className="h-4 w-4 rounded border-stone-300 text-rose-600 focus:ring-rose-500"
+                    onChange={() => setSections((p) => ({ ...p, [key]: !p[key] }))}
+                    className="h-4 w-4 rounded border-stone-300 text-rose-600"
                   />
                   <span className="text-xs font-semibold text-stone-600">{key}</span>
                 </label>
@@ -264,25 +361,140 @@ export default function InvitationEditPage() {
 
           {/* 3. Invitation Text */}
           <Accordion title="3. Invitation Text">
-            <div>
-              <Label htmlFor="text-kh">Khmer Text</Label>
-              <textarea
-                id="text-kh"
-                value={textKh}
-                onChange={(e) => setTextKh(e.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 p-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
-              />
+            <FieldRow label="Khmer Text">
+              <textarea value={textKh} onChange={(e) => setTextKh(e.target.value)} rows={3}
+                className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 p-2 text-xs outline-none focus:border-emerald-400" />
+            </FieldRow>
+            <FieldRow label="English Text">
+              <textarea value={textEn} onChange={(e) => setTextEn(e.target.value)} rows={3}
+                className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 p-2 text-xs outline-none focus:border-emerald-400" />
+            </FieldRow>
+          </Accordion>
+
+          {/* 4. Couple Information */}
+          <Accordion title="4. Couple Information">
+            {(["groom", "bride"] as const).map((person) => {
+              const isGroom = person === "groom";
+              const nameKh = isGroom ? groomNameKh : brideNameKh;
+              const nameEn = isGroom ? groomNameEn : brideNameEn;
+              const father = isGroom ? groomFather : brideFather;
+              const fatherEn = isGroom ? groomFatherEn : brideFatherEn;
+              const mother = isGroom ? groomMother : brideMother;
+              const motherEn = isGroom ? groomMotherEn : brideMotherEn;
+              const photo = isGroom ? groomPhoto : bridePhoto;
+              const setNameKh = isGroom ? setGroomNameKh : setBrideNameKh;
+              const setNameEn = isGroom ? setGroomNameEn : setBrideNameEn;
+              const setFather = isGroom ? setGroomFather : setBrideFather;
+              const setFatherEn = isGroom ? setGroomFatherEn : setBrideFatherEn;
+              const setMother = isGroom ? setGroomMother : setBrideMother;
+              const setMotherEn = isGroom ? setGroomMotherEn : setBrideMotherEn;
+              const setPhoto = isGroom ? setGroomPhoto : setBridePhoto;
+
+              return (
+                <div key={person} className="mb-6 last:mb-0 space-y-3 rounded-lg border border-stone-200 bg-stone-50/50 p-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-800 capitalize">{person}</h3>
+
+                  <FieldRow label="Photo URL">
+                    <TextInput value={photo} onChange={setPhoto} placeholder="https://…" />
+                  </FieldRow>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <FieldRow label="Khmer Name">
+                      <TextInput value={nameKh} onChange={setNameKh} />
+                    </FieldRow>
+                    <FieldRow label="English Name">
+                      <TextInput value={nameEn} onChange={setNameEn} />
+                    </FieldRow>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <FieldRow label="Father (Khmer)">
+                      <TextInput value={father} onChange={setFather} />
+                    </FieldRow>
+                    <FieldRow label="Father (English)">
+                      <TextInput value={fatherEn} onChange={setFatherEn} />
+                    </FieldRow>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <FieldRow label="Mother (Khmer)">
+                      <TextInput value={mother} onChange={setMother} />
+                    </FieldRow>
+                    <FieldRow label="Mother (English)">
+                      <TextInput value={motherEn} onChange={setMotherEn} />
+                    </FieldRow>
+                  </div>
+                </div>
+              );
+            })}
+          </Accordion>
+
+          {/* 5. Event Schedule */}
+          <Accordion title="5. Event Schedule">
+            <div className="grid grid-cols-2 gap-2">
+              <FieldRow label="Wedding Date">
+                <input type="date" value={weddingDate} onChange={(e) => setWeddingDate(e.target.value)}
+                  className="w-full rounded-md border border-stone-200 bg-white p-2 text-xs outline-none focus:border-emerald-400" />
+              </FieldRow>
+              <FieldRow label="Time">
+                <input type="time" value={weddingTime} onChange={(e) => setWeddingTime(e.target.value)}
+                  className="w-full rounded-md border border-stone-200 bg-white p-2 text-xs outline-none focus:border-emerald-400" />
+              </FieldRow>
             </div>
-            <div>
-              <Label htmlFor="text-en">English Text</Label>
-              <textarea
-                id="text-en"
-                value={textEn}
-                onChange={(e) => setTextEn(e.target.value)}
-                rows={3}
-                className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 p-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400"
-              />
+            <FieldRow label="Ceremony Venue">
+              <TextInput value={ceremonyVenue} onChange={setCeremonyVenue} placeholder="Venue name" />
+            </FieldRow>
+            <FieldRow label="Reception Venue">
+              <TextInput value={receptionVenue} onChange={setReceptionVenue} placeholder="Venue name (if different)" />
+            </FieldRow>
+            <FieldRow label="Google Maps Link">
+              <TextInput value={mapsLink} onChange={setMapsLink} placeholder="https://maps.google.com/…" />
+            </FieldRow>
+          </Accordion>
+
+          {/* 6. Love Story */}
+          <Accordion title="6. Love Story">
+            <FieldRow label="Our Story">
+              <textarea value={storyDescription} onChange={(e) => setStoryDescription(e.target.value)}
+                rows={5} placeholder="Tell your story…"
+                className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 p-2 text-xs outline-none focus:border-emerald-400" />
+            </FieldRow>
+          </Accordion>
+
+          {/* 7. Gift Registry */}
+          <Accordion title="7. Gift Registry">
+            <FieldRow label="Bank Name">
+              <TextInput value={bankName} onChange={setBankName} placeholder="ABA Bank" />
+            </FieldRow>
+            <FieldRow label="Account Name">
+              <TextInput value={accountName} onChange={setAccountName} />
+            </FieldRow>
+            <FieldRow label="Account Number">
+              <TextInput value={accountNumber} onChange={setAccountNumber} />
+            </FieldRow>
+            <FieldRow label="QR Code Image URL">
+              <TextInput value={bankQrUrl} onChange={setBankQrUrl} placeholder="https://…" />
+            </FieldRow>
+          </Accordion>
+
+          {/* 8. Gallery */}
+          <Accordion title="8. Gallery (Photos)">
+            <div className="space-y-2">
+              {gallery.map((url, i) => (
+                <div key={i} className="flex gap-2">
+                  <input value={url} onChange={(e) => updateGalleryItem(i, e.target.value)}
+                    placeholder="https://…"
+                    className="flex-1 rounded-md border border-stone-200 bg-stone-50 p-2 text-xs outline-none focus:border-emerald-400" />
+                  <button type="button" onClick={() => removeGalleryItem(i)}
+                    className="px-2 text-xs font-semibold text-red-500 hover:text-red-700">
+                    Del
+                  </button>
+                </div>
+              ))}
+              <button type="button" onClick={addGalleryItem}
+                className="w-full rounded-md bg-stone-100 py-2 text-xs font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200">
+                + Add Photo URL
+              </button>
             </div>
           </Accordion>
 
@@ -300,7 +512,7 @@ export default function InvitationEditPage() {
         </div>
       </div>
 
-      {/* ── RIGHT: live preview panel ── */}
+      {/* ── RIGHT: live preview panel ──────────────────────────────────────── */}
       <div className="relative hidden flex-1 items-center justify-center bg-stone-200/50 md:flex">
 
         {/* Status badge */}
@@ -309,12 +521,8 @@ export default function InvitationEditPage() {
             <>
               <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
               Live Preview
-              <button
-                type="button"
-                className="ml-2 text-stone-400 hover:text-stone-700"
-                onClick={() => setPreviewKey((k) => k + 1)}
-                title="Refresh preview"
-              >
+              <button type="button" className="ml-2 text-stone-400 hover:text-stone-700"
+                onClick={() => setPreviewKey((k) => k + 1)} title="Refresh preview">
                 <RefreshCw className="h-3.5 w-3.5" />
               </button>
             </>
@@ -327,45 +535,29 @@ export default function InvitationEditPage() {
         </div>
 
         {/* Phone frame mockup */}
-        <div
-          className="relative w-full max-w-[390px] overflow-hidden rounded-[2.5rem] bg-black p-3 shadow-2xl ring-1 ring-stone-900/5"
-          style={{
-            height: "min(850px, 90vh)",
-            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.08)",
-          }}
-        >
+        <div className="relative w-full max-w-[390px] overflow-hidden rounded-[2.5rem] bg-black p-3 shadow-2xl ring-1 ring-stone-900/5"
+          style={{ height: "min(850px, 90vh)", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.08)" }}>
+
           {/* Notch */}
           <div className="absolute left-1/2 top-0 z-50 h-7 w-28 -translate-x-1/2 rounded-b-3xl bg-black" />
 
           {/* Screen */}
           <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-white">
             {isPublished ? (
-              <iframe
-                key={previewKey}
-                src={invitation.public_url}
-                title="Invitation preview"
-                className="h-full w-full border-0"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-              />
+              <iframe key={previewKey} src={invitation.public_url}
+                title="Invitation preview" className="h-full w-full border-0"
+                sandbox="allow-scripts allow-same-origin allow-forms" />
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-2xl">
-                  📬
-                </div>
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-2xl">📬</div>
                 <div>
                   <p className="font-semibold text-stone-700">Preview not available</p>
                   <p className="mt-1 text-sm text-stone-400">
-                    Save your changes, then publish the invitation to see the live preview here.
+                    Save your changes then publish to see the live preview here.
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  disabled={publishInvitation.isPending}
-                  onClick={async () => {
-                    await handleSave();
-                    publishInvitation.mutate(invitation.id);
-                  }}
-                >
+                <Button size="sm" disabled={publishInvitation.isPending || saving}
+                  onClick={async () => { await handleSave(); publishInvitation.mutate(invitation.id); }}>
                   <Send className="h-3.5 w-3.5" />
                   Save & Publish
                 </Button>

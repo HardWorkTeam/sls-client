@@ -18,6 +18,8 @@ export interface WeddingPayload {
   wedding_name?: string;
   bride_name?: string;
   groom_name?: string;
+  bride_photo_path?: string | null;
+  groom_photo_path?: string | null;
   phone?: string | null;
   email?: string | null;
   wedding_date?: string | null;
