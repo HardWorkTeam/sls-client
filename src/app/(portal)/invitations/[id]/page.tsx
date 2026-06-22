@@ -523,17 +523,17 @@ export default function InvitationEditPage() {
             <>
               <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
               Live Preview
-              <button type="button" className="ml-2 text-stone-400 hover:text-stone-700"
-                onClick={() => setPreviewKey((k) => k + 1)} title="Refresh preview">
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
             </>
           ) : (
             <>
               <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
-              Draft — publish to preview
+              Draft Preview
             </>
           )}
+          <button type="button" className="ml-2 text-stone-400 hover:text-stone-700"
+            onClick={() => setPreviewKey((k) => k + 1)} title="Refresh preview">
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Phone frame mockup */}
@@ -545,26 +545,9 @@ export default function InvitationEditPage() {
 
           {/* Screen */}
           <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-white">
-            {isPublished ? (
-              <iframe key={previewKey} src={invitation.public_url}
-                title="Invitation preview" className="h-full w-full border-0"
-                sandbox="allow-scripts allow-same-origin allow-forms" />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-2xl">📬</div>
-                <div>
-                  <p className="font-semibold text-stone-700">Preview not available</p>
-                  <p className="mt-1 text-sm text-stone-400">
-                    Save your changes then publish to see the live preview here.
-                  </p>
-                </div>
-                <Button size="sm" disabled={publishInvitation.isPending || saving}
-                  onClick={async () => { await handleSave(); publishInvitation.mutate(invitation.id); }}>
-                  <Send className="h-3.5 w-3.5" />
-                  Save & Publish
-                </Button>
-              </div>
-            )}
+            <iframe key={previewKey} src={invitation.public_url}
+              title="Invitation preview" className="h-full w-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-forms" />
           </div>
         </div>
       </div>
