@@ -2,7 +2,6 @@
 
 import {
   Armchair,
-  CreditCard,
   Gift,
   Heart,
   Images,
@@ -25,7 +24,6 @@ import { useAuthStore } from "@/stores/auth-store";
 
 const NAV_ITEMS = [
   { href: "/my-wedding", label: "My Wedding", icon: Heart },
-  { href: "/plan", label: "Plan & Payment", icon: CreditCard },
   { href: "/guests", label: "Guest List", icon: Users },
   { href: "/rsvp", label: "RSVP Summary", icon: MailCheck },
   { href: "/seating", label: "Seating Plan", icon: Armchair },

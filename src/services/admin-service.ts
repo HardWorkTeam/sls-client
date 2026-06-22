@@ -63,7 +63,8 @@ export const adminService = {
   },
 
   async templates(): Promise<InvitationTemplate[]> {
-    const { data } = await api.get<{ data: InvitationTemplate[] }>("/templates");
+    const { data } = await api.get<{ data: InvitationTemplate[] }>("/invitation-templates");
     return data.data;
   },
+
 };

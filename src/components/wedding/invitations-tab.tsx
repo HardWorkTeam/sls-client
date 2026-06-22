@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, ExternalLink, Plus, QrCode, Send, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Pencil, Plus, QrCode, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge, statusVariant } from "@/components/ui/badge";
@@ -18,8 +18,10 @@ import {
   useDeleteInvitation,
   useInvitations,
   usePublishInvitation,
+  useUpdateInvitation,
 } from "@/hooks/use-invitations";
 import { apiErrorMessage } from "@/lib/api";
+import type { Invitation } from "@/types/api";
 import { invitationService } from "@/services/invitation-service";
 
 interface InvitationForm {
@@ -31,19 +33,26 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
   const { data: invitations, isLoading } = useInvitations(weddingId);
   const { data: templates } = useTemplates();
   const createInvitation = useCreateInvitation(weddingId);
+  const updateInvitation = useUpdateInvitation(weddingId);
   const publishInvitation = usePublishInvitation(weddingId);
   const deleteInvitation = useDeleteInvitation(weddingId);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Invitation | null>(null);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [copied, setCopied] = useState<number | null>(null);
 
-  const form = useForm<InvitationForm>({
+  const createForm = useForm<InvitationForm>({
     defaultValues: { title: "", invitation_template_id: "" },
   });
 
-  const onCreate = form.handleSubmit(async (values) => {
+  const editForm = useForm<InvitationForm>({
+    defaultValues: { title: "", invitation_template_id: "" },
+  });
+
+  const onCreate = createForm.handleSubmit(async (values) => {
     setError(null);
     try {
       await createInvitation.mutateAsync({
@@ -52,10 +61,40 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
           ? Number(values.invitation_template_id)
           : null,
       });
-      form.reset();
+      createForm.reset();
       setCreateOpen(false);
     } catch (err) {
       setError(apiErrorMessage(err));
+    }
+  });
+
+  const openEdit = (invitation: Invitation) => {
+    setEditTarget(invitation);
+    setEditError(null);
+    editForm.reset({
+      title: invitation.title ?? "",
+      invitation_template_id: invitation.invitation_template_id
+        ? String(invitation.invitation_template_id)
+        : "",
+    });
+  };
+
+  const onEdit = editForm.handleSubmit(async (values) => {
+    if (!editTarget) return;
+    setEditError(null);
+    try {
+      await updateInvitation.mutateAsync({
+        invitationId: editTarget.id,
+        payload: {
+          title: values.title || null,
+          invitation_template_id: values.invitation_template_id
+            ? Number(values.invitation_template_id)
+            : null,
+        },
+      });
+      setEditTarget(null);
+    } catch (err) {
+      setEditError(apiErrorMessage(err));
     }
   });
 
@@ -104,9 +143,19 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
                       {invitation.invitation_code}
                     </p>
                   </div>
-                  <Badge variant={statusVariant(invitation.status)}>
-                    <span className="capitalize">{invitation.status}</span>
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="text-zinc-400 hover:text-zinc-700"
+                      onClick={() => openEdit(invitation)}
+                      aria-label="Edit invitation"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <Badge variant={statusVariant(invitation.status)}>
+                      <span className="capitalize">{invitation.status}</span>
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="text-sm text-zinc-600">
@@ -171,6 +220,7 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
         </div>
       )}
 
+      {/* ── Create dialog ── */}
       <Dialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
@@ -183,12 +233,12 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
             <Input
               id="invitation-title"
               placeholder="You are invited to our wedding"
-              {...form.register("title")}
+              {...createForm.register("title")}
             />
           </div>
           <div>
             <Label htmlFor="invitation-template">Template</Label>
-            <Select id="invitation-template" {...form.register("invitation_template_id")}>
+            <Select id="invitation-template" {...createForm.register("invitation_template_id")}>
               <option value="">No template</option>
               {(templates ?? []).map((template) => (
                 <option key={template.id} value={template.id}>
@@ -209,6 +259,46 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
         </form>
       </Dialog>
 
+      {/* ── Edit dialog ── */}
+      <Dialog
+        open={editTarget !== null}
+        onClose={() => setEditTarget(null)}
+        title="Edit Invitation"
+        description="Update the title or switch to a different template."
+      >
+        <form onSubmit={onEdit} className="space-y-3">
+          <div>
+            <Label htmlFor="edit-invitation-title">Title</Label>
+            <Input
+              id="edit-invitation-title"
+              placeholder="You are invited to our wedding"
+              {...editForm.register("title")}
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-invitation-template">Template</Label>
+            <Select id="edit-invitation-template" {...editForm.register("invitation_template_id")}>
+              <option value="">No template</option>
+              {(templates ?? []).map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setEditTarget(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateInvitation.isPending}>
+              {updateInvitation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+
+      {/* ── QR Code dialog ── */}
       <Dialog
         open={qrSvg !== null}
         onClose={() => setQrSvg(null)}

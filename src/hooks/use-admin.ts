@@ -35,9 +35,9 @@ export function usePackages() {
 
 export function useTemplates() {
   return useQuery({
-    queryKey: ["templates"],
+    queryKey: ["invitation-templates"],
     queryFn: () => adminService.templates(),
-    staleTime: 5 * 60_000,
+    staleTime: 10 * 60_000,
   });
 }
 
