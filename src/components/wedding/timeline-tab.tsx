@@ -22,6 +22,12 @@ import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { TimelineEvent } from "@/types/api";
 
+function toLocalInput(utcIso: string): string {
+  const d = new Date(utcIso);
+  const offset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
   engagement: "Engagement",
   ceremony: "Ceremony",
@@ -70,7 +76,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
       category: event.category,
       title: event.title,
       description: event.description ?? "",
-      starts_at: event.starts_at ? event.starts_at.slice(0, 16) : "",
+      starts_at: event.starts_at ? toLocalInput(event.starts_at) : "",
       location: event.location ?? "",
       is_public: event.is_public,
     });
@@ -81,7 +87,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
     setError(null);
     const payload = {
       ...values,
-      starts_at: values.starts_at || null,
+      starts_at: values.starts_at ? new Date(values.starts_at).toISOString() : null,
       description: values.description || null,
       location: values.location || null,
     };

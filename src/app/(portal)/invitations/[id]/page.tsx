@@ -304,7 +304,7 @@ export default function InvitationEditPage() {
     await createTimelineEvent.mutateAsync({
       category: evtCategory,
       title: evtTitle.trim(),
-      starts_at: evtStartsAt || null,
+      starts_at: evtStartsAt ? new Date(evtStartsAt).toISOString() : null,
       location: evtLocation || null,
       is_public: evtIsPublic,
     });
