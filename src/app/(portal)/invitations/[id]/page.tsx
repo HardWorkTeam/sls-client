@@ -208,7 +208,7 @@ export default function InvitationEditPage() {
   useEffect(() => {
     if (!wedding) return;
     setWeddingDate(wedding.wedding_date ?? "");
-    setWeddingTime(wedding.wedding_time ?? "");
+    setWeddingTime(wedding.wedding_time?.slice(0, 5) ?? "");
     setCeremonyVenue(wedding.ceremony_venue ?? "");
     setReceptionVenue(wedding.reception_venue ?? "");
     setMapsLink(wedding.google_map_link ?? "");
