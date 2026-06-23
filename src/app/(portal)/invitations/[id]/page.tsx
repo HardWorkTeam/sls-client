@@ -614,8 +614,9 @@ export default function InvitationEditPage() {
               {gallery.map((url, i) => (
                 <div key={i} className="relative rounded-lg border border-stone-200 bg-stone-50/50 p-3">
                   <button type="button" onClick={() => removeGalleryItem(i)}
-                    className="absolute right-2 top-2 text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-700">
-                    Remove
+                    className="absolute right-2 top-2 text-stone-300 hover:text-red-500"
+                    aria-label="Remove photo">
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                   <ImageUpload
                     weddingId={wedding.id}
