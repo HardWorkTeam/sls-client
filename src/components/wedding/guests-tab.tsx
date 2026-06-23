@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Pencil, Plus, Search, Trash2, Upload } from "lucide-react";
+import { Download, Pencil, Plus, Search, Trash2, Upload, Users } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,16 +25,21 @@ import {
 import {
   useBulkInvite,
   useCreateGuest,
+  useCreateGuestGroup,
   useDeleteGuest,
+  useDeleteGuestGroup,
   useGuestGroups,
   useGuests,
   useImportGuests,
   useUpdateGuest,
+  useUpdateGuestGroup,
 } from "@/hooks/use-guests";
 import { useInvitations } from "@/hooks/use-invitations";
 import { apiErrorMessage } from "@/lib/api";
 import { guestService } from "@/services/guest-service";
-import type { Guest } from "@/types/api";
+import type { Guest, GuestGroup } from "@/types/api";
+
+const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
 
 const guestSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -60,6 +65,13 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // Group management state
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<GuestGroup | null>(null);
+  const [groupName, setGroupName] = useState("");
+  const [groupType, setGroupType] = useState<string>("custom");
+  const [groupError, setGroupError] = useState<string | null>(null);
+
   const { data, isLoading } = useGuests(weddingId, {
     search: search || undefined,
     guest_group_id: groupId ? Number(groupId) : undefined,
@@ -73,6 +85,9 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
   const deleteGuest = useDeleteGuest(weddingId);
   const importGuests = useImportGuests(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
+  const createGroup = useCreateGuestGroup(weddingId);
+  const updateGroup = useUpdateGuestGroup(weddingId);
+  const deleteGroup = useDeleteGuestGroup(weddingId);
 
   const form = useForm<GuestForm>({ resolver: zodResolver(guestSchema) });
 
@@ -156,6 +171,38 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
       current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
     );
 
+  const openCreateGroup = () => {
+    setEditingGroup(null);
+    setGroupName("");
+    setGroupType("custom");
+    setGroupError(null);
+  };
+
+  const openEditGroup = (group: GuestGroup) => {
+    setEditingGroup(group);
+    setGroupName(group.name);
+    setGroupType(group.type);
+    setGroupError(null);
+  };
+
+  const onSubmitGroup = async () => {
+    if (!groupName.trim()) {
+      setGroupError("Name is required.");
+      return;
+    }
+    setGroupError(null);
+    try {
+      if (editingGroup) {
+        await updateGroup.mutateAsync({ groupId: editingGroup.id, payload: { name: groupName.trim(), type: groupType } });
+      } else {
+        await createGroup.mutateAsync({ name: groupName.trim(), type: groupType });
+      }
+      openCreateGroup();
+    } catch (err) {
+      setGroupError(apiErrorMessage(err));
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -203,6 +250,9 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
           </Button>
           <Button variant="outline" size="sm" onClick={onExport}>
             <Download className="h-4 w-4" /> Export
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { openCreateGroup(); setGroupDialogOpen(true); }}>
+            <Users className="h-4 w-4" /> Groups
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4" /> Add Guest
@@ -289,10 +339,18 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
                       {guest.name}{" "}
                       {guest.is_vip ? <Badge variant="warning">VIP</Badge> : null}
                     </p>
+                    {guest.note ? (
+                      <p className="text-xs italic text-zinc-400">{guest.note}</p>
+                    ) : null}
                   </TableCell>
                   <TableCell>
                     <p className="text-zinc-700">{guest.phone ?? "—"}</p>
-                    <p className="text-xs text-zinc-500">{guest.email ?? ""}</p>
+                    {guest.email ? (
+                      <p className="text-xs text-zinc-500">{guest.email}</p>
+                    ) : null}
+                    {guest.address ? (
+                      <p className="text-xs text-zinc-400">{guest.address}</p>
+                    ) : null}
                   </TableCell>
                   <TableCell>{guest.group?.name ?? "—"}</TableCell>
                   <TableCell>
@@ -341,6 +399,7 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
         </>
       )}
 
+      {/* Add / Edit Guest dialog */}
       <Dialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -404,6 +463,109 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      {/* Manage Groups dialog */}
+      <Dialog
+        open={groupDialogOpen}
+        onClose={() => setGroupDialogOpen(false)}
+        title="Manage Groups"
+      >
+        <div className="space-y-4">
+          {/* Existing groups list */}
+          {(groups ?? []).length === 0 ? (
+            <p className="text-sm text-zinc-500">No groups yet. Create one below.</p>
+          ) : (
+            <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200">
+              {(groups ?? []).map((group) => (
+                <li key={group.id} className="flex items-center justify-between px-3 py-2">
+                  {editingGroup?.id === group.id ? (
+                    <div className="flex flex-1 items-center gap-2">
+                      <Input
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                        className="h-7 text-xs"
+                        autoFocus
+                      />
+                      <Select
+                        value={groupType}
+                        onChange={(e) => setGroupType(e.target.value)}
+                        className="h-7 w-28 text-xs"
+                      >
+                        {GROUP_TYPES.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </Select>
+                      <Button size="sm" onClick={onSubmitGroup} disabled={updateGroup.isPending}>
+                        Save
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={openCreateGroup}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="text-sm font-medium text-zinc-800">{group.name}</span>
+                        <span className="ml-2 text-xs capitalize text-zinc-400">{group.type}</span>
+                        {group.guests_count !== undefined ? (
+                          <span className="ml-1 text-xs text-zinc-400">· {group.guests_count} guests</span>
+                        ) : null}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEditGroup(group)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (confirm(`Delete group "${group.name}"?`)) {
+                              deleteGroup.mutate(group.id);
+                            }
+                          }}
+                          disabled={deleteGroup.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Create new group form */}
+          {!editingGroup ? (
+            <div className="space-y-2 rounded-lg border border-dashed border-zinc-300 p-3">
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+                New Group
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Group name"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <Select
+                  value={groupType}
+                  onChange={(e) => setGroupType(e.target.value)}
+                  className="h-8 w-32 text-sm"
+                >
+                  {GROUP_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </Select>
+                <Button size="sm" onClick={onSubmitGroup} disabled={createGroup.isPending}>
+                  <Plus className="h-4 w-4" /> Add
+                </Button>
+              </div>
+              {groupError ? <p className="text-xs text-red-600">{groupError}</p> : null}
+            </div>
+          ) : null}
+        </div>
       </Dialog>
     </div>
   );

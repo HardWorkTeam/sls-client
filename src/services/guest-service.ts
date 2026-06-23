@@ -96,6 +96,18 @@ export const guestService = {
     return data.data;
   },
 
+  async updateGroup(
+    weddingId: number,
+    groupId: number,
+    payload: { name: string; type?: string },
+  ): Promise<GuestGroup> {
+    const { data } = await api.put<{ data: GuestGroup }>(
+      `/weddings/${weddingId}/guest-groups/${groupId}`,
+      payload,
+    );
+    return data.data;
+  },
+
   async removeGroup(weddingId: number, groupId: number): Promise<void> {
     await api.delete(`/weddings/${weddingId}/guest-groups/${groupId}`);
   },

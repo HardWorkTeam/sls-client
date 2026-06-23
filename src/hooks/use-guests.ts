@@ -90,3 +90,24 @@ export function useCreateGuestGroup(weddingId: number) {
       queryClient.invalidateQueries({ queryKey: guestKeys.groups(weddingId) }),
   });
 }
+
+export function useUpdateGuestGroup(weddingId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ groupId, payload }: { groupId: number; payload: { name: string; type?: string } }) =>
+      guestService.updateGroup(weddingId, groupId, payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: guestKeys.groups(weddingId) }),
+  });
+}
+
+export function useDeleteGuestGroup(weddingId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (groupId: number) => guestService.removeGroup(weddingId, groupId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: guestKeys.groups(weddingId) });
+      queryClient.invalidateQueries({ queryKey: guestKeys.all(weddingId) });
+    },
+  });
+}

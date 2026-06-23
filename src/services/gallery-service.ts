@@ -18,10 +18,6 @@ export const galleryService = {
     return data.data;
   },
 
-  async removeAlbum(weddingId: number, albumId: number): Promise<void> {
-    await api.delete(`/weddings/${weddingId}/albums/${albumId}`);
-  },
-
   async media(
     weddingId: number,
     params: { album_id?: number; media_type?: string; page?: number; per_page?: number } = {},
@@ -47,6 +43,18 @@ export const galleryService = {
     const { data } = await api.post<{ data: MediaItem }>(
       `/weddings/${weddingId}/media`,
       form,
+    );
+    return data.data;
+  },
+
+  async patchMedia(
+    weddingId: number,
+    mediaId: number,
+    payload: { is_public: boolean },
+  ): Promise<MediaItem> {
+    const { data } = await api.patch<{ data: MediaItem }>(
+      `/weddings/${weddingId}/media/${mediaId}`,
+      payload,
     );
     return data.data;
   },

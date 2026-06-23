@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, FolderPlus, Trash2, Upload, Video } from "lucide-react";
+import { Download, Eye, EyeOff, FolderPlus, Trash2, Upload, Video } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
   useCreateAlbum,
   useDeleteMedia,
   useMedia,
+  useToggleMediaPublic,
   useUploadMedia,
 } from "@/hooks/use-gallery";
 import { apiErrorMessage } from "@/lib/api";
@@ -41,6 +42,7 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
   });
   const createAlbum = useCreateAlbum(weddingId);
   const uploadMedia = useUploadMedia(weddingId);
+  const togglePublic = useToggleMediaPublic(weddingId);
   const deleteMedia = useDeleteMedia(weddingId);
 
   const form = useForm<AlbumForm>({
@@ -164,6 +166,21 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
                     >
                       <Download className="h-3.5 w-3.5" />
                     </a>
+                    <button
+                      type="button"
+                      className={`rounded p-1 text-white ${item.is_public ? "bg-emerald-500/70 hover:bg-emerald-600" : "bg-white/20 hover:bg-emerald-500/70"}`}
+                      aria-label={item.is_public ? "Hide from invitation" : "Show on invitation"}
+                      title={item.is_public ? "Hide from invitation" : "Show on invitation"}
+                      onClick={() =>
+                        togglePublic.mutate({ mediaId: item.id, isPublic: !item.is_public })
+                      }
+                    >
+                      {item.is_public ? (
+                        <Eye className="h-3.5 w-3.5" />
+                      ) : (
+                        <EyeOff className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="rounded bg-white/20 p-1 text-white hover:bg-red-500"

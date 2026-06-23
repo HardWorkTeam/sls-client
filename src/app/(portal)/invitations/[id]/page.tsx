@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Eye, RefreshCw, Save, Send } from "lucide-react";
+import { ArrowLeft, Eye, Plus, RefreshCw, Save, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,6 +17,11 @@ import {
   useUpdateInvitation,
 } from "@/hooks/use-invitations";
 import { useMyWedding } from "@/hooks/use-my-wedding";
+import {
+  useCreateTimelineEvent,
+  useDeleteTimelineEvent,
+  useTimeline,
+} from "@/hooks/use-timeline";
 import { useUpdateWedding } from "@/hooks/use-weddings";
 
 // ── Section keys ─────────────────────────────────────────────────────────────
@@ -97,6 +102,9 @@ export default function InvitationEditPage() {
   const updateInvitation = useUpdateInvitation(wedding?.id ?? 0);
   const updateWedding = useUpdateWedding(wedding?.id ?? 0);
   const publishInvitation = usePublishInvitation(wedding?.id ?? 0);
+  const { data: timelineEvents } = useTimeline(wedding?.id ?? 0);
+  const createTimelineEvent = useCreateTimelineEvent(wedding?.id ?? 0);
+  const deleteTimelineEvent = useDeleteTimelineEvent(wedding?.id ?? 0);
 
   const invitation = invitations?.find((i) => i.id === invitationId);
 
@@ -146,6 +154,14 @@ export default function InvitationEditPage() {
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+
+  // Inline schedule event form
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [evtCategory, setEvtCategory] = useState("ceremony");
+  const [evtTitle, setEvtTitle] = useState("");
+  const [evtStartsAt, setEvtStartsAt] = useState("");
+  const [evtLocation, setEvtLocation] = useState("");
+  const [evtIsPublic, setEvtIsPublic] = useState(true);
 
   // ── Initialise from API data ──────────────────────────────────────────────
   useEffect(() => {
@@ -281,6 +297,23 @@ export default function InvitationEditPage() {
   }
 
   const isPublished = invitation.status === "published";
+
+  // Timeline event helpers
+  const handleAddEvent = async () => {
+    if (!evtTitle.trim()) return;
+    await createTimelineEvent.mutateAsync({
+      category: evtCategory,
+      title: evtTitle.trim(),
+      starts_at: evtStartsAt || null,
+      location: evtLocation || null,
+      is_public: evtIsPublic,
+    });
+    setEvtTitle("");
+    setEvtStartsAt("");
+    setEvtLocation("");
+    setEvtIsPublic(true);
+    setShowEventForm(false);
+  };
 
   // Gallery helpers
   const updateGalleryItem = (i: number, v: string) =>
@@ -449,6 +482,105 @@ export default function InvitationEditPage() {
             <FieldRow label="Google Maps Link">
               <TextInput value={mapsLink} onChange={setMapsLink} placeholder="https://maps.google.com/…" />
             </FieldRow>
+
+            {/* Timeline events */}
+            <div className="mt-3 border-t border-stone-200 pt-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
+                  Schedule Events
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowEventForm((v) => !v)}
+                  className="flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200"
+                >
+                  <Plus className="h-3 w-3" /> Add Schedule
+                </button>
+              </div>
+
+              {(timelineEvents ?? []).length === 0 && !showEventForm ? (
+                <p className="text-xs text-stone-400">No schedule events yet.</p>
+              ) : null}
+
+              <div className="space-y-1">
+                {(timelineEvents ?? []).map((evt) => (
+                  <div key={evt.id}
+                    className="flex items-start justify-between rounded-md border border-stone-100 bg-stone-50 px-2.5 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-stone-800">{evt.title}</p>
+                      <p className="text-[10px] capitalize text-stone-400">
+                        {evt.category}
+                        {evt.starts_at ? ` · ${new Date(evt.starts_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
+                        {evt.location ? ` · ${evt.location}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Delete "${evt.title}"?`)) deleteTimelineEvent.mutate(evt.id);
+                      }}
+                      className="ml-2 shrink-0 text-stone-300 hover:text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {showEventForm ? (
+                <div className="mt-2 space-y-2 rounded-md border border-stone-200 bg-white p-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Category</label>
+                      <select value={evtCategory} onChange={(e) => setEvtCategory(e.target.value)}
+                        className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400">
+                        <option value="ceremony">Ceremony</option>
+                        <option value="reception">Reception</option>
+                        <option value="engagement">Engagement</option>
+                        <option value="after_party">After Party</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Date &amp; Time</label>
+                      <input type="datetime-local" value={evtStartsAt} onChange={(e) => setEvtStartsAt(e.target.value)}
+                        className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Title</label>
+                    <input value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)}
+                      placeholder="e.g. Wedding Ceremony"
+                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Location</label>
+                    <input value={evtLocation} onChange={(e) => setEvtLocation(e.target.value)}
+                      placeholder="Venue or address"
+                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input id="evt-public" type="checkbox" checked={evtIsPublic}
+                      onChange={(e) => setEvtIsPublic(e.target.checked)}
+                      className="h-3.5 w-3.5" />
+                    <label htmlFor="evt-public" className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
+                      Visible on invitation
+                    </label>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => setShowEventForm(false)}
+                      className="rounded-md bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-200">
+                      Cancel
+                    </button>
+                    <button type="button" onClick={handleAddEvent}
+                      disabled={createTimelineEvent.isPending || !evtTitle.trim()}
+                      className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+                      {createTimelineEvent.isPending ? "Saving…" : "Save Event"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </Accordion>
 
           {/* 6. Love Story */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Gift as GiftIcon, Plus, Trash2 } from "lucide-react";
+import { Gift as GiftIcon, Plus, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCreateGift, useDeleteGift, useGifts, useGiftSummary } from "@/hooks/use-gifts";
-import { useGuests } from "@/hooks/use-guests";
+import { useCreateGuest, useGuests } from "@/hooks/use-guests";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 
@@ -38,6 +38,7 @@ interface GiftForm {
   amount: string;
   item_name: string;
   note: string;
+  new_guest_name: string;
 }
 
 export function GiftsTab({ weddingId }: { weddingId: number }) {
@@ -53,24 +54,44 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const { data: summary } = useGiftSummary(weddingId);
   const { data: guestsPage } = useGuests(weddingId, { per_page: 200 });
   const createGift = useCreateGift(weddingId);
+  const createGuest = useCreateGuest(weddingId);
   const deleteGift = useDeleteGift(weddingId);
 
   const form = useForm<GiftForm>({
-    defaultValues: { guest_id: "", gift_type: "cash", amount: "", item_name: "", note: "" },
+    defaultValues: { guest_id: "", gift_type: "cash", amount: "", item_name: "", note: "", new_guest_name: "" },
   });
   const watchType = form.watch("gift_type");
+  const watchGuestId = form.watch("guest_id");
+
+  const openDialog = () => {
+    form.reset({ guest_id: "", gift_type: "cash", amount: "", item_name: "", note: "", new_guest_name: "" });
+    setError(null);
+    setDialogOpen(true);
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
     try {
+      let resolvedGuestId: number | null = null;
+
+      if (values.guest_id === "new") {
+        if (!values.new_guest_name.trim()) {
+          form.setError("new_guest_name", { message: "Name is required" });
+          return;
+        }
+        const newGuest = await createGuest.mutateAsync({ name: values.new_guest_name.trim() });
+        resolvedGuestId = newGuest.id;
+      } else if (values.guest_id) {
+        resolvedGuestId = Number(values.guest_id);
+      }
+
       await createGift.mutateAsync({
-        guest_id: values.guest_id ? Number(values.guest_id) : null,
+        guest_id: resolvedGuestId,
         gift_type: values.gift_type,
         amount: values.amount ? Number(values.amount) : null,
         item_name: values.item_name || null,
         note: values.note || null,
       });
-      form.reset({ guest_id: "", gift_type: "cash", amount: "", item_name: "", note: "" });
       setDialogOpen(false);
     } catch (err) {
       setError(apiErrorMessage(err));
@@ -110,7 +131,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           <option value="bank_transfer">Bank Transfer</option>
           <option value="item">Gift Item</option>
         </Select>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
+        <Button size="sm" onClick={openDialog}>
           <Plus className="h-4 w-4" /> Record Gift
         </Button>
       </div>
@@ -122,7 +143,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           title="No gifts recorded"
           description="Track cash gifts, bank transfers and gift items received."
           action={
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button onClick={openDialog}>
               <Plus className="h-4 w-4" /> Record Gift
             </Button>
           }
@@ -195,8 +216,29 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
                   {guest.name}
                 </option>
               ))}
+              <option value="new">+ Create new guest</option>
             </Select>
           </div>
+
+          {watchGuestId === "new" ? (
+            <div>
+              <Label htmlFor="new-guest-name" className="flex items-center gap-1">
+                <UserPlus className="h-3.5 w-3.5" /> New guest name
+              </Label>
+              <Input
+                id="new-guest-name"
+                placeholder="Full name"
+                autoFocus
+                {...form.register("new_guest_name")}
+              />
+              {form.formState.errors.new_guest_name ? (
+                <p className="mt-1 text-xs text-red-600">
+                  {form.formState.errors.new_guest_name.message}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="gift-type">Type</Label>
@@ -233,7 +275,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
             <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createGift.isPending}>
+            <Button type="submit" disabled={createGift.isPending || createGuest.isPending}>
               Save Gift
             </Button>
           </div>

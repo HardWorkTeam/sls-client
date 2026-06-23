@@ -2,8 +2,11 @@
 
 import {
   CheckCircle2,
+  DollarSign,
   HelpCircle,
   Pencil,
+  TrendingDown,
+  TrendingUp,
   UserPlus,
   Users,
   XCircle,
@@ -20,6 +23,8 @@ import { Select } from "@/components/ui/select";
 import { PageLoader } from "@/components/ui/spinner";
 import { StatCard } from "@/components/ui/stat-card";
 import { Textarea } from "@/components/ui/textarea";
+import { useExpenseSummary } from "@/hooks/use-expenses";
+import { useGiftSummary } from "@/hooks/use-gifts";
 import {
   useChangeWeddingStatus,
   useInviteMember,
@@ -55,6 +60,8 @@ interface InviteForm {
 export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const { data: dashboard, isLoading } = useWeddingDashboard(wedding.id);
   const { data: members } = useWeddingMembers(wedding.id);
+  const { data: giftSummary } = useGiftSummary(wedding.id);
+  const { data: expenseSummary } = useExpenseSummary(wedding.id);
   const changeStatus = useChangeWeddingStatus(wedding.id);
   const updateWedding = useUpdateWedding(wedding.id);
   const inviteMember = useInviteMember(wedding.id);
@@ -201,6 +208,40 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
           />
         </div>
       )}
+
+      {giftSummary || expenseSummary ? (() => {
+        const income = giftSummary?.total_cash_amount ?? 0;
+        const expenses = expenseSummary?.total_amount ?? 0;
+        const net = income - expenses;
+        return (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Gift Income"
+              value={formatMoney(income)}
+              icon={TrendingUp}
+              accent="emerald"
+            />
+            <StatCard
+              label="Total Expenses"
+              value={formatMoney(expenses)}
+              icon={TrendingDown}
+              accent="rose"
+            />
+            <div className={`flex items-center gap-4 rounded-lg border p-5 ${net >= 0 ? "border-emerald-100 bg-emerald-50" : "border-rose-100 bg-rose-50"}`}>
+              <div className={`rounded-lg p-2.5 ${net >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                <DollarSign className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-zinc-500">Net Income</p>
+                <p className={`text-2xl font-semibold ${net >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                  {formatMoney(net)}
+                </p>
+                <p className="text-xs text-zinc-400">{net >= 0 ? "surplus" : "loss"}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })() : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>

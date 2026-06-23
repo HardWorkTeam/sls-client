@@ -54,6 +54,16 @@ export function useUploadMedia(weddingId: number) {
   });
 }
 
+export function useToggleMediaPublic(weddingId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ mediaId, isPublic }: { mediaId: number; isPublic: boolean }) =>
+      galleryService.patchMedia(weddingId, mediaId, { is_public: isPublic }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: galleryKeys.all(weddingId) }),
+  });
+}
+
 export function useDeleteMedia(weddingId: number) {
   const queryClient = useQueryClient();
   return useMutation({
