@@ -54,6 +54,31 @@ export interface Package {
   is_active: boolean;
 }
 
+export type SubscriptionStatus = "pending" | "submitted" | "paid" | "rejected";
+
+export interface Subscription {
+  id: number;
+  wedding_id: number;
+  package_id: number | null;
+  package?: Package | null;
+  amount: number;
+  currency: string;
+  status: SubscriptionStatus;
+  payment_method: string | null;
+  payment_reference: string | null;
+  submitted_at: string | null;
+  paid_at: string | null;
+  created_at?: string;
+}
+
+export interface PaymentDetails {
+  bank_name: string | null;
+  account_name: string | null;
+  account_number: string | null;
+  khqr_image_url: string | null;
+  instructions: string | null;
+}
+
 export interface InvitationTemplate {
   id: number;
   slug: string;
