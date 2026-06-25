@@ -60,8 +60,8 @@ export default function ForgotPasswordPage() {
             {sent ? (
               <div className="mt-4 space-y-3 text-center">
                 <p className="text-sm text-[#05603a]">
-                  If an account exists for <strong>{email}</strong>, a password
-                  reset link has been sent. Please check your inbox.
+                  A password reset link has been sent to{" "}
+                  <strong>{email}</strong>. Please check your inbox.
                 </p>
                 <Link
                   href="/"
