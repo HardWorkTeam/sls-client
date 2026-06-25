@@ -76,6 +76,17 @@ const VISUAL: Record<string, {
   },
 };
 
+const FALLBACK_VISUAL = {
+  bg: "#ffffff",
+  border: "#d1d5db",
+  labelColor: "#374151",
+  labelBg: "#f3f4f6",
+  nameColor: "#111827",
+  descColor: "#6b7280",
+  palette: ["#9ca3af"],
+  description: "",
+};
+
 interface TemplatePickerProps {
   templates: InvitationTemplate[];
   value: string; // selected template id (as string)
@@ -107,16 +118,7 @@ export function TemplatePicker({ templates, value, onChange }: TemplatePickerPro
       </button>
 
       {templates.map((tpl) => {
-        const v = VISUAL[tpl.slug] ?? {
-          bg: "#ffffff",
-          border: "#d1d5db",
-          labelColor: "#374151",
-          labelBg: "#f3f4f6",
-          nameColor: "#111827",
-          descColor: "#6b7280",
-          palette: ["#9ca3af"],
-          description: "",
-        };
+        const v = VISUAL[tpl.slug] ?? FALLBACK_VISUAL;
         const isSelected = value === String(tpl.id);
 
         return (
@@ -170,6 +172,58 @@ export function TemplatePicker({ templates, value, onChange }: TemplatePickerPro
               </p>
             </div>
           </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Read-only showcase of the available invitation designs. Used to let a
+ * couple with no package preview what they'd get before choosing a plan —
+ * no selection, no create.
+ */
+export function TemplatePreviewGallery({
+  templates,
+}: {
+  templates: InvitationTemplate[];
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {templates.map((tpl) => {
+        const v = VISUAL[tpl.slug] ?? FALLBACK_VISUAL;
+
+        return (
+          <div
+            key={tpl.id}
+            className="flex flex-col gap-3 rounded-xl border-2 p-4"
+            style={{ background: v.bg, borderColor: `${v.border}40` }}
+          >
+            <span
+              className="inline-block self-start rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase"
+              style={{
+                color: v.labelColor,
+                background: v.labelBg,
+                borderColor: `${v.labelColor}40`,
+              }}
+            >
+              {tpl.name}
+            </span>
+
+            <div className="flex gap-1.5">
+              {v.palette.map((color) => (
+                <span
+                  key={color}
+                  className="h-3.5 w-3.5 rounded-full border border-white/20"
+                  style={{ background: color }}
+                />
+              ))}
+            </div>
+
+            <p className="text-[11px] leading-relaxed" style={{ color: v.descColor }}>
+              {v.description}
+            </p>
+          </div>
         );
       })}
     </div>

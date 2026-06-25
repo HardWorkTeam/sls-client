@@ -26,24 +26,29 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { GatedModule } from "@/types/api";
 
-// `module` flags a nav item as plan-gated: it is only shown when the
-// wedding's paid plan includes that module.
+// Nav gating flags:
+// - `module`        → shown only when the selected package includes it.
+// - `requiresPackage` → shown only once SOME package is selected.
+// Items with neither are always visible (My Wedding, Plan & Payment,
+// Invitations, Settings) so a couple with no package can still set up their
+// wedding, create invitations, and choose a plan.
 const NAV_ITEMS: {
   href: string;
   label: string;
   icon: typeof Heart;
   module?: GatedModule;
+  requiresPackage?: boolean;
 }[] = [
   { href: "/my-wedding", label: "My Wedding", icon: Heart },
   { href: "/plan", label: "Plan & Payment", icon: CreditCard },
   { href: "/invitations", label: "Invitations", icon: Mail },
-  { href: "/guests", label: "Guest List", icon: Users },
-  { href: "/rsvp", label: "RSVP Summary", icon: MailCheck },
+  { href: "/guests", label: "Guest List", icon: Users, requiresPackage: true },
+  { href: "/rsvp", label: "RSVP Summary", icon: MailCheck, requiresPackage: true },
   { href: "/seating", label: "Seating Plan", icon: Armchair, module: "seating" },
   { href: "/gallery", label: "Gallery", icon: Images, module: "gallery" },
   { href: "/gifts", label: "Gift Tracking", icon: Gift, module: "gifts" },
-  { href: "/expenses", label: "Expense Tracking", icon: Wallet },
-  { href: "/timeline", label: "Timeline", icon: ListChecks },
+  { href: "/expenses", label: "Expense Tracking", icon: Wallet, requiresPackage: true },
+  { href: "/timeline", label: "Timeline", icon: ListChecks, requiresPackage: true },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -59,13 +64,17 @@ export function ClientShell({ children }: { children: ReactNode }) {
 
   useMe();
 
-  // Hide plan-gated modules the wedding's paid plan doesn't include. While
-  // capabilities are still loading we leave items visible (the page-level
-  // guard catches any direct navigation).
+  // Filter the sidebar to what the wedding can actually use: module items
+  // need that module in the selected package; `requiresPackage` items need
+  // any package selected. Until a package is chosen, only the always-visible
+  // items (My Wedding, Plan & Payment, Invitations, Settings) show.
+  const hasPackage = Boolean(wedding?.package);
   const capabilities = wedding?.capabilities;
-  const navItems = NAV_ITEMS.filter(
-    (item) => !item.module || !capabilities || capabilities.modules[item.module],
-  );
+  const navItems = NAV_ITEMS.filter((item) => {
+    if (item.module) return Boolean(capabilities?.modules[item.module]);
+    if (item.requiresPackage) return hasPackage;
+    return true;
+  });
 
   useEffect(() => setHydrated(true), []);
 

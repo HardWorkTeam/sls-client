@@ -13,7 +13,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLoader } from "@/components/ui/spinner";
-import { TemplatePicker } from "@/components/wedding/TemplatePicker";
+import {
+  TemplatePicker,
+  TemplatePreviewGallery,
+} from "@/components/wedding/TemplatePicker";
 import { useTemplates } from "@/hooks/use-admin";
 import {
   useCreateInvitation,
@@ -32,11 +35,15 @@ interface InvitationForm {
 export function InvitationsTab({
   weddingId,
   designLimit,
+  hasPackage = true,
 }: {
   weddingId: number;
   // Plan cap on distinct invitation designs (null/undefined = unlimited).
   // The API enforces the real limit; this drives the on-screen counter.
   designLimit?: number | null;
+  // Whether the wedding has selected a package. Without one, the tab is a
+  // read-only template preview (no create, no counter).
+  hasPackage?: boolean;
 }) {
   const router = useRouter();
   const { data: invitations, isLoading } = useInvitations(weddingId);
@@ -91,6 +98,23 @@ export function InvitationsTab({
       .filter((id): id is number => id != null),
   ).size;
   const atDesignLimit = designLimit != null && usedDesigns >= designLimit;
+
+  // No package yet → read-only preview of the available designs. No package
+  // prompt, no create button, no usage counter — just a look at the templates.
+  if (!hasPackage) {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-zinc-500">
+          Preview the invitation designs available on Srolanh.
+        </p>
+        {!templates ? (
+          <PageLoader label="Loading designs..." />
+        ) : (
+          <TemplatePreviewGallery templates={templates} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

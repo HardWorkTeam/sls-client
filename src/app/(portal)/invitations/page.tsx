@@ -8,12 +8,12 @@ export default function InvitationsPage() {
     <WeddingPage
       title="Invitations"
       description="Create and manage your digital wedding invitations, share links and QR codes."
-      requiresPackage
     >
       {(wedding) => (
         <InvitationsTab
           weddingId={wedding.id}
           designLimit={wedding.capabilities?.invitation_design_limit ?? null}
+          hasPackage={Boolean(wedding.package)}
         />
       )}
     </WeddingPage>

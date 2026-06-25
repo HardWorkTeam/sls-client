@@ -1,8 +1,5 @@
 "use client";
 
-import { Gift as GiftIcon, Plus, Trash2, UserPlus } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -21,10 +18,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useCreateGift, useDeleteGift, useGifts, useGiftSummary } from "@/hooks/use-gifts";
+import {
+  useCreateGift,
+  useDeleteGift,
+  useGifts,
+  useGiftSummary,
+} from "@/hooks/use-gifts";
 import { useCreateGuest, useGuests } from "@/hooks/use-guests";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
+import { Gift as GiftIcon, Plus, Trash2, UserPlus } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 const GIFT_TYPE_LABELS: Record<string, string> = {
   cash: "Cash",
@@ -58,13 +63,27 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const deleteGift = useDeleteGift(weddingId);
 
   const form = useForm<GiftForm>({
-    defaultValues: { guest_id: "", gift_type: "cash", amount: "", item_name: "", note: "", new_guest_name: "" },
+    defaultValues: {
+      guest_id: "",
+      gift_type: "cash",
+      amount: "",
+      item_name: "",
+      note: "",
+      new_guest_name: "",
+    },
   });
   const watchType = form.watch("gift_type");
   const watchGuestId = form.watch("guest_id");
 
   const openDialog = () => {
-    form.reset({ guest_id: "", gift_type: "cash", amount: "", item_name: "", note: "", new_guest_name: "" });
+    form.reset({
+      guest_id: "",
+      gift_type: "cash",
+      amount: "",
+      item_name: "",
+      note: "",
+      new_guest_name: "",
+    });
     setError(null);
     setDialogOpen(true);
   };
@@ -79,7 +98,9 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           form.setError("new_guest_name", { message: "Name is required" });
           return;
         }
-        const newGuest = await createGuest.mutateAsync({ name: values.new_guest_name.trim() });
+        const newGuest = await createGuest.mutateAsync({
+          name: values.new_guest_name.trim(),
+        });
         resolvedGuestId = newGuest.id;
       } else if (values.guest_id) {
         resolvedGuestId = Number(values.guest_id);
@@ -102,7 +123,11 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     <div className="space-y-4">
       {summary ? (
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <StatCard label="Total Gifts" value={summary.total_gifts} icon={GiftIcon} />
+          <StatCard
+            label="Total Gifts"
+            value={summary.total_gifts}
+            icon={GiftIcon}
+          />
           <StatCard
             label="Total Cash"
             value={formatMoney(summary.total_cash_amount)}
@@ -113,7 +138,11 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
             value={`${summary.by_type.cash.count} / ${summary.by_type.bank_transfer.count}`}
             accent="amber"
           />
-          <StatCard label="Gift Items" value={summary.by_type.item.count} accent="rose" />
+          <StatCard
+            label="Gift Items"
+            value={summary.by_type.item.count}
+            accent="rose"
+          />
         </div>
       ) : null}
 
@@ -174,7 +203,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
                   </TableCell>
                   <TableCell>
                     {gift.gift_type === "item"
-                      ? gift.item_name ?? "—"
+                      ? (gift.item_name ?? "—")
                       : formatMoney(gift.amount)}
                   </TableCell>
                   <TableCell className="max-w-48">
@@ -205,7 +234,11 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         </>
       )}
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Record Gift">
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title="Record Gift"
+      >
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <Label htmlFor="gift-guest">Guest</Label>
@@ -222,8 +255,11 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
 
           {watchGuestId === "new" ? (
             <div>
-              <Label htmlFor="new-guest-name" className="flex items-center gap-1">
-                <UserPlus className="h-3.5 w-3.5" /> New guest name
+              <Label
+                htmlFor="new-guest-name"
+                className="flex items-center gap-1"
+              >
+                <UserPlus className="h-3.5 mb-1 w-3.5" /> New guest name
               </Label>
               <Input
                 id="new-guest-name"
@@ -272,10 +308,17 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           </div>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={createGift.isPending || createGuest.isPending}>
+            <Button
+              type="submit"
+              disabled={createGift.isPending || createGuest.isPending}
+            >
               Save Gift
             </Button>
           </div>
