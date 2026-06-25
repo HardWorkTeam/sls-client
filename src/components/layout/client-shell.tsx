@@ -116,7 +116,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh bg-zinc-50">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
         {sidebar}
       </aside>
 
