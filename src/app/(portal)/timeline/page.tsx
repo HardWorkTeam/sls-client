@@ -8,6 +8,7 @@ export default function TimelinePage() {
     <WeddingPage
       title="Event Timeline"
       description="Plan the engagement, ceremony, reception and after party."
+      requiresPackage
     >
       {(wedding) => <TimelineTab weddingId={wedding.id} />}
     </WeddingPage>

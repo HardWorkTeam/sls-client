@@ -8,6 +8,7 @@ export default function InvitationsPage() {
     <WeddingPage
       title="Invitations"
       description="Create and manage your digital wedding invitations, share links and QR codes."
+      requiresPackage
     >
       {(wedding) => (
         <InvitationsTab

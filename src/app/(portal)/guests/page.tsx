@@ -8,6 +8,7 @@ export default function GuestsPage() {
     <WeddingPage
       title="Guest List"
       description="Manage guests, groups, imports and bulk invitations."
+      requiresPackage
     >
       {(wedding) => (
         <GuestsTab
