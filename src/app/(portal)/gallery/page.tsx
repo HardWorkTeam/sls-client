@@ -8,6 +8,7 @@ export default function GalleryPage() {
     <WeddingPage
       title="Gallery"
       description="Upload photos and videos, organize albums and share memories."
+      requires="gallery"
     >
       {(wedding) => <GalleryTab weddingId={wedding.id} />}
     </WeddingPage>

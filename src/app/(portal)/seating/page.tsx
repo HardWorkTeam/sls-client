@@ -8,6 +8,7 @@ export default function SeatingPage() {
     <WeddingPage
       title="Seating Plan"
       description="Create tables, assign guests and balance your reception layout."
+      requires="seating"
     >
       {(wedding) => <SeatingTab weddingId={wedding.id} />}
     </WeddingPage>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, Eye, Plus, QrCode, Send, Trash2, Pencil } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -28,7 +29,15 @@ interface InvitationForm {
   invitation_template_id: string;
 }
 
-export function InvitationsTab({ weddingId }: { weddingId: number }) {
+export function InvitationsTab({
+  weddingId,
+  designLimit,
+}: {
+  weddingId: number;
+  // Plan cap on distinct invitation designs (null/undefined = unlimited).
+  // The API enforces the real limit; this drives the on-screen counter.
+  designLimit?: number | null;
+}) {
   const router = useRouter();
   const { data: invitations, isLoading } = useInvitations(weddingId);
   const { data: templates } = useTemplates();
@@ -74,9 +83,25 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
     setTimeout(() => setCopied(null), 1500);
   };
 
+  // Distinct templates already in use — what counts against the plan's
+  // design cap. Reusing one of these never consumes a new slot.
+  const usedDesigns = new Set(
+    (invitations ?? [])
+      .map((invitation) => invitation.invitation_template_id)
+      .filter((id): id is number => id != null),
+  ).size;
+  const atDesignLimit = designLimit != null && usedDesigns >= designLimit;
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        {designLimit != null ? (
+          <p className="text-sm text-zinc-500">
+            {usedDesigns} / {designLimit} invitation designs used on your plan.
+          </p>
+        ) : (
+          <span />
+        )}
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="h-4 w-4" /> Create Invitation
         </Button>
@@ -220,6 +245,16 @@ export function InvitationsTab({ weddingId }: { weddingId: number }) {
               value={createForm.watch("invitation_template_id")}
               onChange={(id) => createForm.setValue("invitation_template_id", id)}
             />
+            {atDesignLimit ? (
+              <p className="mt-2 text-sm text-amber-600">
+                You&apos;ve reached your plan&apos;s {designLimit} design limit. Pick a
+                template you already use, or{" "}
+                <Link href="/plan" className="font-medium underline">
+                  upgrade your plan
+                </Link>{" "}
+                for more.
+              </p>
+            ) : null}
           </div>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-2">

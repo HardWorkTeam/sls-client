@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, Pencil, Plus, Search, Trash2, Upload, Users } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,6 +37,7 @@ import {
 } from "@/hooks/use-guests";
 import { useInvitations } from "@/hooks/use-invitations";
 import { apiErrorMessage } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { guestService } from "@/services/guest-service";
 import type { Guest, GuestGroup } from "@/types/api";
 
@@ -53,7 +55,15 @@ const guestSchema = z.object({
 
 type GuestForm = z.infer<typeof guestSchema>;
 
-export function GuestsTab({ weddingId }: { weddingId: number }) {
+export function GuestsTab({
+  weddingId,
+  guestLimit,
+}: {
+  weddingId: number;
+  // Plan guest cap (null/undefined = unlimited); used to show a banner and
+  // disable adding once reached. The API enforces the real limit.
+  guestLimit?: number | null;
+}) {
   const [search, setSearch] = useState("");
   const [groupId, setGroupId] = useState("");
   const [page, setPage] = useState(1);
@@ -88,6 +98,9 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
   const createGroup = useCreateGuestGroup(weddingId);
   const updateGroup = useUpdateGuestGroup(weddingId);
   const deleteGroup = useDeleteGuestGroup(weddingId);
+
+  const guestTotal = data?.meta?.total ?? 0;
+  const atGuestLimit = guestLimit != null && guestTotal >= guestLimit;
 
   const form = useForm<GuestForm>({ resolver: zodResolver(guestSchema) });
 
@@ -254,11 +267,31 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
           <Button variant="outline" size="sm" onClick={() => { openCreateGroup(); setGroupDialogOpen(true); }}>
             <Users className="h-4 w-4" /> Groups
           </Button>
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={openCreate} disabled={atGuestLimit}>
             <Plus className="h-4 w-4" /> Add Guest
           </Button>
         </div>
       </div>
+
+      {guestLimit != null ? (
+        <p
+          className={cn(
+            "text-sm",
+            atGuestLimit ? "text-red-600" : "text-zinc-500",
+          )}
+        >
+          {guestTotal} / {guestLimit} guests used on your plan.
+          {atGuestLimit ? (
+            <>
+              {" "}
+              <Link href="/plan" className="font-medium text-emerald-700 underline">
+                Upgrade your plan
+              </Link>{" "}
+              to add more.
+            </>
+          ) : null}
+        </p>
+      ) : null}
 
       {selected.length > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
@@ -295,7 +328,7 @@ export function GuestsTab({ weddingId }: { weddingId: number }) {
           title="No guests yet"
           description="Add guests manually or import a CSV file (columns: name, phone, email, address, group, is_vip, note)."
           action={
-            <Button onClick={openCreate}>
+            <Button onClick={openCreate} disabled={atGuestLimit}>
               <Plus className="h-4 w-4" /> Add Guest
             </Button>
           }

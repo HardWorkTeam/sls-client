@@ -51,10 +51,27 @@ export interface Package {
   price: number | null;
   currency: string | null;
   features: string[] | null;
+  capabilities?: PlanCapabilities;
   is_active: boolean;
 }
 
 export type SubscriptionStatus = "pending" | "submitted" | "paid" | "rejected";
+
+/**
+ * What a wedding is allowed to do, derived from its PAID package. Modules are
+ * gated booleans; limits are caps where `null` means unlimited.
+ */
+export interface PlanCapabilities {
+  modules: {
+    seating: boolean;
+    gallery: boolean;
+    gifts: boolean;
+  };
+  guest_limit: number | null;
+  invitation_design_limit: number | null;
+}
+
+export type GatedModule = keyof PlanCapabilities["modules"];
 
 export interface Subscription {
   id: number;
@@ -118,6 +135,8 @@ export interface Wedding {
   completed_at: string | null;
   cancelled_at: string | null;
   package?: Package | null;
+  payment_status?: SubscriptionStatus | "unpaid";
+  capabilities?: PlanCapabilities;
   created_by?: User | null;
   members?: WeddingMember[];
   guests_count?: number;

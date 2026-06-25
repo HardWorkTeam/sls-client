@@ -9,7 +9,12 @@ export default function InvitationsPage() {
       title="Invitations"
       description="Create and manage your digital wedding invitations, share links and QR codes."
     >
-      {(wedding) => <InvitationsTab weddingId={wedding.id} />}
+      {(wedding) => (
+        <InvitationsTab
+          weddingId={wedding.id}
+          designLimit={wedding.capabilities?.invitation_design_limit ?? null}
+        />
+      )}
     </WeddingPage>
   );
 }

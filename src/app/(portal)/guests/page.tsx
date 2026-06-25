@@ -9,7 +9,12 @@ export default function GuestsPage() {
       title="Guest List"
       description="Manage guests, groups, imports and bulk invitations."
     >
-      {(wedding) => <GuestsTab weddingId={wedding.id} />}
+      {(wedding) => (
+        <GuestsTab
+          weddingId={wedding.id}
+          guestLimit={wedding.capabilities?.guest_limit ?? null}
+        />
+      )}
     </WeddingPage>
   );
 }

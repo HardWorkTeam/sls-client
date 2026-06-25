@@ -21,18 +21,27 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { PageLoader } from "@/components/ui/spinner";
 import { useLogout, useMe } from "@/hooks/use-auth";
+import { useMyWedding } from "@/hooks/use-my-wedding";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import type { GatedModule } from "@/types/api";
 
-const NAV_ITEMS = [
+// `module` flags a nav item as plan-gated: it is only shown when the
+// wedding's paid plan includes that module.
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  icon: typeof Heart;
+  module?: GatedModule;
+}[] = [
   { href: "/my-wedding", label: "My Wedding", icon: Heart },
   { href: "/plan", label: "Plan & Payment", icon: CreditCard },
   { href: "/invitations", label: "Invitations", icon: Mail },
   { href: "/guests", label: "Guest List", icon: Users },
   { href: "/rsvp", label: "RSVP Summary", icon: MailCheck },
-  { href: "/seating", label: "Seating Plan", icon: Armchair },
-  { href: "/gallery", label: "Gallery", icon: Images },
-  { href: "/gifts", label: "Gift Tracking", icon: Gift },
+  { href: "/seating", label: "Seating Plan", icon: Armchair, module: "seating" },
+  { href: "/gallery", label: "Gallery", icon: Images, module: "gallery" },
+  { href: "/gifts", label: "Gift Tracking", icon: Gift, module: "gifts" },
   { href: "/expenses", label: "Expense Tracking", icon: Wallet },
   { href: "/timeline", label: "Timeline", icon: ListChecks },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -44,10 +53,19 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const token = useAuthStore((state) => state.token);
   const user = useAuthStore((state) => state.user);
   const logout = useLogout();
+  const { wedding } = useMyWedding();
   const [hydrated, setHydrated] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useMe();
+
+  // Hide plan-gated modules the wedding's paid plan doesn't include. While
+  // capabilities are still loading we leave items visible (the page-level
+  // guard catches any direct navigation).
+  const capabilities = wedding?.capabilities;
+  const navItems = NAV_ITEMS.filter(
+    (item) => !item.module || !capabilities || capabilities.modules[item.module],
+  );
 
   useEffect(() => setHydrated(true), []);
 
@@ -76,7 +94,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
         </div>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (

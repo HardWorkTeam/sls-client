@@ -8,6 +8,7 @@ export default function GiftsPage() {
     <WeddingPage
       title="Gift Tracking"
       description="Record cash gifts, bank transfers and gift items."
+      requires="gifts"
     >
       {(wedding) => <GiftsTab weddingId={wedding.id} />}
     </WeddingPage>
