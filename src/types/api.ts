@@ -306,23 +306,6 @@ export interface MediaItem {
   created_at?: string;
 }
 
-export type AnnouncementChannel = "email" | "sms" | "in_app";
-export type AnnouncementStatus = "draft" | "scheduled" | "sending" | "sent" | "failed";
-
-export interface Announcement {
-  id: number;
-  wedding_id: number;
-  title: string;
-  body: string;
-  channel: AnnouncementChannel;
-  status: AnnouncementStatus;
-  scheduled_at: string | null;
-  sent_at: string | null;
-  created_by?: User | null;
-  notification_logs_count?: number;
-  created_at?: string;
-}
-
 export interface DashboardOverview {
   cards: {
     total_weddings: number;
