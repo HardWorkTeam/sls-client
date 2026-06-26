@@ -64,15 +64,17 @@ export function ClientShell({ children }: { children: ReactNode }) {
 
   useMe();
 
-  // Filter the sidebar to what the wedding can actually use: module items
-  // need that module in the selected package; `requiresPackage` items need
-  // any package selected. Until a package is chosen, only the always-visible
-  // items (My Wedding, Plan & Payment, Invitations, Settings) show.
-  const hasPackage = Boolean(wedding?.package);
+  // Filter the sidebar to what the wedding can actually use. Features unlock
+  // only once the plan is PAID (admin-confirmed) — a package that is merely
+  // selected, awaiting confirmation, or rejected stays locked. `module` items
+  // need that module in the paid package; `requiresPackage` items need any
+  // paid plan. Until then only the always-visible items (My Wedding, Plan &
+  // Payment, Invitations, Settings) show.
+  const isPaid = wedding?.payment_status === "paid";
   const capabilities = wedding?.capabilities;
   const navItems = NAV_ITEMS.filter((item) => {
     if (item.module) return Boolean(capabilities?.modules[item.module]);
-    if (item.requiresPackage) return hasPackage;
+    if (item.requiresPackage) return isPaid;
     return true;
   });
 

@@ -35,15 +35,15 @@ interface InvitationForm {
 export function InvitationsTab({
   weddingId,
   designLimit,
-  hasPackage = true,
+  isPaid = true,
 }: {
   weddingId: number;
   // Plan cap on distinct invitation designs (null/undefined = unlimited).
   // The API enforces the real limit; this drives the on-screen counter.
   designLimit?: number | null;
-  // Whether the wedding has selected a package. Without one, the tab is a
-  // read-only template preview (no create, no counter).
-  hasPackage?: boolean;
+  // Whether the wedding's plan is PAID (admin-confirmed). Until then the tab
+  // is a read-only template preview (no create, no counter).
+  isPaid?: boolean;
 }) {
   const router = useRouter();
   const { data: invitations, isLoading } = useInvitations(weddingId);
@@ -99,13 +99,13 @@ export function InvitationsTab({
   ).size;
   const atDesignLimit = designLimit != null && usedDesigns >= designLimit;
 
-  // No package yet → read-only preview of the available designs. No package
-  // prompt, no create button, no usage counter — just a look at the templates.
-  if (!hasPackage) {
+  // Plan not paid yet → read-only preview of the available designs. No
+  // create button, no usage counter — just a look at the templates.
+  if (!isPaid) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-zinc-500">
-          Preview the invitation designs available on Srolanh.
+          Click any design to preview the full invitation.
         </p>
         {!templates ? (
           <PageLoader label="Loading designs..." />

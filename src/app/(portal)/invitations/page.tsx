@@ -13,7 +13,7 @@ export default function InvitationsPage() {
         <InvitationsTab
           weddingId={wedding.id}
           designLimit={wedding.capabilities?.invitation_design_limit ?? null}
-          hasPackage={Boolean(wedding.package)}
+          isPaid={wedding.payment_status === "paid"}
         />
       )}
     </WeddingPage>

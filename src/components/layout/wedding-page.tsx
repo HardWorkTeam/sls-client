@@ -13,12 +13,12 @@ import type { GatedModule, Wedding } from "@/types/api";
  * Resolves the couple's wedding and renders the page body with it, with
  * shared loading / empty handling.
  *
- * Plan gating (the platform is not free):
- * - `requiresPackage` — the page needs *some* package selected. With none,
- *   the couple is prompted to choose one.
- * - `requires` — the page needs a specific module (implies a package). If a
- *   package is selected but doesn't include the module, an upgrade prompt
- *   shows instead.
+ * Plan gating (the platform is not free): features unlock only once the plan
+ * is PAID (admin-confirmed). A package that is merely selected, awaiting
+ * confirmation, or rejected stays locked.
+ * - `requiresPackage` — the page needs any paid plan.
+ * - `requires` — the page needs a specific module. If the paid plan doesn't
+ *   include it, an upgrade prompt shows instead.
  */
 export function WeddingPage({
   title,
@@ -35,14 +35,14 @@ export function WeddingPage({
 }) {
   const { wedding, isLoading } = useMyWedding();
 
-  const hasPackage = Boolean(wedding?.package);
+  const isPaid = wedding?.payment_status === "paid";
   const gated = requiresPackage || requires !== undefined;
-  // No package chosen yet → must select one first.
-  const needsPackage = gated && wedding !== undefined && !hasPackage;
-  // Package chosen, but it doesn't include this module → upgrade.
+  // Plan isn't active (no package, or pending / submitted / rejected payment).
+  const notActive = gated && wedding !== undefined && !isPaid;
+  // Plan is paid, but it doesn't include this module → upgrade.
   const moduleLocked =
     requires !== undefined &&
-    hasPackage &&
+    isPaid &&
     wedding?.capabilities !== undefined &&
     !wedding.capabilities.modules[requires];
 
@@ -56,12 +56,8 @@ export function WeddingPage({
         <PageLoader label="Loading your wedding..." />
       ) : !wedding ? (
         <CreateWeddingForm />
-      ) : needsPackage ? (
-        <PlanGateCard
-          title="Choose a package to get started"
-          body="Your wedding doesn't have a package yet. Select a plan to unlock your tools and start planning."
-          cta="Choose a package"
-        />
+      ) : notActive ? (
+        <PlanGateCard {...lockedCopy(wedding.payment_status)} />
       ) : moduleLocked ? (
         <PlanGateCard
           title="This feature isn't in your current plan"
@@ -73,6 +69,40 @@ export function WeddingPage({
       )}
     </div>
   );
+}
+
+/** Message for a locked feature, tailored to where the plan is in payment. */
+function lockedCopy(status: Wedding["payment_status"]): {
+  title: string;
+  body: string;
+  cta: string;
+} {
+  switch (status) {
+    case "pending":
+      return {
+        title: "Complete your payment to unlock this",
+        body: "You've selected a plan. Submit your payment on the Plan & Payment page — your tools unlock once an admin confirms it.",
+        cta: "Go to Plan & Payment",
+      };
+    case "submitted":
+      return {
+        title: "Your payment is awaiting confirmation",
+        body: "We've received your payment. This feature unlocks as soon as an administrator confirms it.",
+        cta: "View payment status",
+      };
+    case "rejected":
+      return {
+        title: "Your payment was rejected",
+        body: "Please re-select a plan and submit your payment again to unlock your tools.",
+        cta: "Go to Plan & Payment",
+      };
+    default:
+      return {
+        title: "Choose a package to get started",
+        body: "Your wedding doesn't have an active plan yet. Choose a package and complete payment to unlock your tools.",
+        cta: "Choose a package",
+      };
+  }
 }
 
 function PlanGateCard({

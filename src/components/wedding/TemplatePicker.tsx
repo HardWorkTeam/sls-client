@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Eye } from "lucide-react";
 import type { InvitationTemplate } from "@/types/api";
 
 // Static visual config keyed by slug (colors/palette/description not stored in DB)
@@ -178,10 +178,13 @@ export function TemplatePicker({ templates, value, onChange }: TemplatePickerPro
   );
 }
 
+const RSVP_URL = process.env.NEXT_PUBLIC_RSVP_URL ?? "http://localhost:3002";
+
 /**
- * Read-only showcase of the available invitation designs. Used to let a
- * couple with no package preview what they'd get before choosing a plan —
- * no selection, no create.
+ * Read-only showcase of the available invitation designs. Each card links to
+ * the full-page template preview on the public RSVP site (opens in a new
+ * tab) so a couple can see the complete design before choosing a plan —
+ * no selection, no create, no login needed for the preview.
  */
 export function TemplatePreviewGallery({
   templates,
@@ -194,21 +197,33 @@ export function TemplatePreviewGallery({
         const v = VISUAL[tpl.slug] ?? FALLBACK_VISUAL;
 
         return (
-          <div
+          <a
             key={tpl.id}
-            className="flex flex-col gap-3 rounded-xl border-2 p-4"
+            href={`${RSVP_URL}/preview/${tpl.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="group flex flex-col gap-3 rounded-xl border-2 p-4 transition-all hover:-translate-y-0.5 hover:opacity-95 hover:shadow-lg"
             style={{ background: v.bg, borderColor: `${v.border}40` }}
+            title={`Preview the ${tpl.name} design`}
           >
-            <span
-              className="inline-block self-start rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase"
-              style={{
-                color: v.labelColor,
-                background: v.labelBg,
-                borderColor: `${v.labelColor}40`,
-              }}
-            >
-              {tpl.name}
-            </span>
+            <div className="flex items-start justify-between gap-2">
+              <span
+                className="inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase"
+                style={{
+                  color: v.labelColor,
+                  background: v.labelBg,
+                  borderColor: `${v.labelColor}40`,
+                }}
+              >
+                {tpl.name}
+              </span>
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-semibold opacity-70 transition-opacity group-hover:opacity-100"
+                style={{ color: v.labelColor }}
+              >
+                <Eye className="h-3 w-3" /> Preview
+              </span>
+            </div>
 
             <div className="flex gap-1.5">
               {v.palette.map((color) => (
@@ -223,7 +238,7 @@ export function TemplatePreviewGallery({
             <p className="text-[11px] leading-relaxed" style={{ color: v.descColor }}>
               {v.description}
             </p>
-          </div>
+          </a>
         );
       })}
     </div>
