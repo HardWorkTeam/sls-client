@@ -257,9 +257,9 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
             <div>
               <Label
                 htmlFor="new-guest-name"
-                className="flex items-center gap-1"
+                className="mb-1 flex items-center gap-1"
               >
-                <UserPlus className="h-3.5 mb-1 w-3.5" /> New guest name
+                <UserPlus className="h-3.5 w-3.5" /> New guest name
               </Label>
               <Input
                 id="new-guest-name"
