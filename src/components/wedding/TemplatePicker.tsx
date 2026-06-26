@@ -44,7 +44,7 @@ const VISUAL: Record<string, {
     palette: ["#2C3E56", "#6A8CB2", "#BEA56E"],
     description: "Watercolor leaves. White clean design, gold ring, elegant serif.",
   },
-  "phanaroth-luxury-v1": {
+  "red-rose-luxury-v1": {
     bg: "#4A0404",
     border: "#E8C97A",
     labelColor: "#E8C97A",
