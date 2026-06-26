@@ -1,5 +1,11 @@
 "use client";
 
+import { PageLoader } from "@/components/ui/spinner";
+import { useLogout, useMe } from "@/hooks/use-auth";
+import { useMyWedding } from "@/hooks/use-my-wedding";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
+import type { GatedModule } from "@/types/api";
 import {
   Armchair,
   CreditCard,
@@ -19,12 +25,6 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { PageLoader } from "@/components/ui/spinner";
-import { useLogout, useMe } from "@/hooks/use-auth";
-import { useMyWedding } from "@/hooks/use-my-wedding";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/stores/auth-store";
-import type { GatedModule } from "@/types/api";
 
 // Nav gating flags:
 // - `module`        → shown only when the selected package includes it.
@@ -43,12 +43,32 @@ const NAV_ITEMS: {
   { href: "/plan", label: "Plan & Payment", icon: CreditCard },
   { href: "/invitations", label: "Invitations", icon: Mail },
   { href: "/guests", label: "Guest List", icon: Users, requiresPackage: true },
-  { href: "/rsvp", label: "RSVP Summary", icon: MailCheck, requiresPackage: true },
-  { href: "/seating", label: "Seating Plan", icon: Armchair, module: "seating" },
+  {
+    href: "/rsvp",
+    label: "RSVP Summary",
+    icon: MailCheck,
+    requiresPackage: true,
+  },
+  {
+    href: "/seating",
+    label: "Seating Plan",
+    icon: Armchair,
+    module: "seating",
+  },
   { href: "/gallery", label: "Gallery", icon: Images, module: "gallery" },
   { href: "/gifts", label: "Gift Tracking", icon: Gift, module: "gifts" },
-  { href: "/expenses", label: "Expense Tracking", icon: Wallet, requiresPackage: true },
-  { href: "/timeline", label: "Timeline", icon: ListChecks, requiresPackage: true },
+  {
+    href: "/expenses",
+    label: "Expense Tracking",
+    icon: Wallet,
+    requiresPackage: true,
+  },
+  {
+    href: "/timeline",
+    label: "Timeline",
+    icon: ListChecks,
+    requiresPackage: true,
+  },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -100,7 +120,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
         <img
           src="/srolanh-logo.png"
           alt="Srolanh — Digital Event Management"
-          className="h-9 w-auto shrink-0"
+          className="h-16 w-auto shrink-0"
         />
         <span className="text-[11px] text-zinc-500">Couple Portal</span>
       </div>
@@ -127,7 +147,9 @@ export function ClientShell({ children }: { children: ReactNode }) {
       </nav>
       <div className="border-t border-zinc-100 p-3">
         <div className="mb-2 px-3">
-          <p className="truncate text-sm font-medium text-zinc-800">{user?.name}</p>
+          <p className="truncate text-sm font-medium text-zinc-800">
+            {user?.name}
+          </p>
           <p className="truncate text-xs text-zinc-500">{user?.email}</p>
         </div>
         <button
@@ -181,11 +203,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
           >
             <Menu className="h-6 w-6" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/srolanh-logo.png"
-              alt="Srolanh"
-              className="h-7 w-auto"
-            />
+            <img src="/srolanh-logo.png" alt="Srolanh" className="h-7 w-auto" />
           </button>
           <button
             type="button"
