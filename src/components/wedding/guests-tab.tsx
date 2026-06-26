@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Pencil, Plus, Search, Trash2, Upload, Users } from "lucide-react";
+import { Download, Pencil, Plus, Search, Send, Trash2, Upload, Users } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -42,6 +42,9 @@ import { guestService } from "@/services/guest-service";
 import type { Guest, GuestGroup } from "@/types/api";
 
 const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
+
+// Public RSVP site base used to build personalized invitation links.
+const RSVP_URL = process.env.NEXT_PUBLIC_RSVP_URL ?? "http://localhost:3002";
 
 const guestSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -183,6 +186,27 @@ export function GuestsTab({
     setSelected((current) =>
       current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
     );
+
+  // Copy a personalized invitation link for a guest. Uses the guest's assigned
+  // invitation, falling back to the wedding's first invitation when none is set.
+  const copyInviteLink = async (guest: Guest) => {
+    setFeedback(null);
+    setError(null);
+    const code = guest.invitation?.invitation_code ?? invitations?.[0]?.invitation_code;
+    if (!code) {
+      setError("Create an invitation first, then you can send a personalized link.");
+      return;
+    }
+    const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setFeedback(`Invitation link for ${guest.name} copied to clipboard.`);
+    } catch {
+      // Clipboard API may be unavailable (e.g. non-secure context) — surface the
+      // link so the user can copy it manually.
+      setError(`Couldn't copy automatically. Link: ${link}`);
+    }
+  };
 
   const openCreateGroup = () => {
     setEditingGroup(null);
@@ -402,6 +426,15 @@ export function GuestsTab({
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Copy invitation link for ${guest.name}`}
+                        title="Copy personalized invitation link"
+                        onClick={() => copyInviteLink(guest)}
+                      >
+                        <Send className="h-4 w-4 text-emerald-600" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
