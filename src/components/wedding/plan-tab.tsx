@@ -37,23 +37,34 @@ export function PlanTab({ weddingId }: { weddingId: number }) {
   const choosePackage = (packageId: number) =>
     selectPackage.mutate(packageId, { onSuccess: () => setChanging(false) });
 
-  // 1) Paid — plan is locked.
-  if (status === "paid") {
+  // 1) Active — plan is locked in. Free plans activate on selection (no
+  //    payment); paid plans reach here once an admin confirms the payment.
+  //    While "changing" (free → upgrade) we fall through to the picker.
+  if (status === "paid" && !changing) {
+    const isFree = (subscription?.amount ?? 0) <= 0;
     return (
       <Card>
-        <CardContent className="flex items-start gap-4 p-6">
-          <div className="rounded-lg bg-emerald-100 p-2.5 text-emerald-700">
-            <CheckCircle2 className="h-5 w-5" />
+        <CardContent className="flex items-start justify-between gap-4 p-6">
+          <div className="flex items-start gap-4">
+            <div className="rounded-lg bg-emerald-100 p-2.5 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-zinc-900">
+                {subscription?.package?.name} plan — {isFree ? "active" : "paid"}
+              </p>
+              <p className="text-sm text-zinc-500">
+                {isFree
+                  ? "Your free plan is active. Upgrade any time to unlock more features."
+                  : `${formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")} confirmed. Thank you! Your wedding has full access.`}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-zinc-900">
-              {subscription?.package?.name} plan — paid
-            </p>
-            <p className="text-sm text-zinc-500">
-              {formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")} confirmed.
-              Thank you! Your wedding has full access.
-            </p>
-          </div>
+          {isFree ? (
+            <Button variant="outline" size="sm" onClick={() => setChanging(true)}>
+              Upgrade plan
+            </Button>
+          ) : null}
         </CardContent>
       </Card>
     );
@@ -105,7 +116,9 @@ export function PlanTab({ weddingId }: { weddingId: number }) {
                 <CardTitle className="flex items-center justify-between">
                   <span>{pkg.name}</span>
                   <Badge variant="secondary">
-                    {formatMoney(pkg.price ?? 0, pkg.currency ?? "USD")}
+                    {(pkg.price ?? 0) <= 0
+                      ? "Free"
+                      : formatMoney(pkg.price ?? 0, pkg.currency ?? "USD")}
                   </Badge>
                 </CardTitle>
               </CardHeader>

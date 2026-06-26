@@ -35,15 +35,12 @@ interface InvitationForm {
 export function InvitationsTab({
   weddingId,
   designLimit,
-  isPaid = true,
 }: {
   weddingId: number;
-  // Plan cap on distinct invitation designs (null/undefined = unlimited).
+  // Plan cap on distinct invitation designs. `null`/`undefined` = unlimited,
+  // `0` = the plan includes no invitation designs (locked → preview only).
   // The API enforces the real limit; this drives the on-screen counter.
   designLimit?: number | null;
-  // Whether the wedding's plan is PAID (admin-confirmed). Until then the tab
-  // is a read-only template preview (no create, no counter).
-  isPaid?: boolean;
 }) {
   const router = useRouter();
   const { data: invitations, isLoading } = useInvitations(weddingId);
@@ -98,10 +95,13 @@ export function InvitationsTab({
       .filter((id): id is number => id != null),
   ).size;
   const atDesignLimit = designLimit != null && usedDesigns >= designLimit;
+  // A plan with a 0 invitation-design allowance (no plan, unpaid, or a Free
+  // plan) can't create invitations → read-only preview of the designs.
+  const designsLocked = designLimit === 0;
 
-  // Plan not paid yet → read-only preview of the available designs. No
-  // create button, no usage counter — just a look at the templates.
-  if (!isPaid) {
+  // No invitation designs in this plan → read-only preview of the available
+  // designs. No create button, no usage counter — just a look at the templates.
+  if (designsLocked) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-zinc-500">

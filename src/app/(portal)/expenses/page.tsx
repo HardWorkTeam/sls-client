@@ -8,7 +8,7 @@ export default function ExpensesPage() {
     <WeddingPage
       title="Expense Tracking"
       description="Track vendor costs, deposits and payments against your budget."
-      requiresPackage
+      requires="expense"
     >
       {(wedding) => <ExpensesTab weddingId={wedding.id} />}
     </WeddingPage>

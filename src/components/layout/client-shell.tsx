@@ -47,7 +47,7 @@ const NAV_ITEMS: {
     href: "/rsvp",
     label: "RSVP Summary",
     icon: MailCheck,
-    requiresPackage: true,
+    module: "rsvp",
   },
   {
     href: "/seating",
@@ -61,13 +61,13 @@ const NAV_ITEMS: {
     href: "/expenses",
     label: "Expense Tracking",
     icon: Wallet,
-    requiresPackage: true,
+    module: "expense",
   },
   {
     href: "/timeline",
     label: "Timeline",
     icon: ListChecks,
-    requiresPackage: true,
+    module: "timeline",
   },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -203,7 +203,11 @@ export function ClientShell({ children }: { children: ReactNode }) {
           >
             <Menu className="h-6 w-6" />
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/srolanh-logo.png" alt="Srolanh" className="h-7 w-auto" />
+            <img
+              src="/srolanh-logo.png"
+              alt="Srolanh"
+              className="h-12 w-auto"
+            />
           </button>
           <button
             type="button"

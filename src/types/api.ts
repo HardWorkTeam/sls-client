@@ -66,6 +66,9 @@ export interface PlanCapabilities {
     seating: boolean;
     gallery: boolean;
     gifts: boolean;
+    expense: boolean;
+    rsvp: boolean;
+    timeline: boolean;
   };
   guest_limit: number | null;
   invitation_design_limit: number | null;

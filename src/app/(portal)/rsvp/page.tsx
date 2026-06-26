@@ -8,7 +8,7 @@ export default function RsvpPage() {
     <WeddingPage
       title="RSVP Summary"
       description="Track who is coming, who declined and who hasn't answered yet."
-      requiresPackage
+      requires="rsvp"
     >
       {(wedding) => <RsvpTab weddingId={wedding.id} />}
     </WeddingPage>
