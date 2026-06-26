@@ -161,6 +161,7 @@ export default function InvitationEditPage() {
   const [evtTitle, setEvtTitle] = useState("");
   const [evtStartsAt, setEvtStartsAt] = useState("");
   const [evtLocation, setEvtLocation] = useState("");
+  const [evtMapsLink, setEvtMapsLink] = useState("");
   const [evtIsPublic, setEvtIsPublic] = useState(true);
 
   // ── Initialise from API data ──────────────────────────────────────────────
@@ -306,11 +307,13 @@ export default function InvitationEditPage() {
       title: evtTitle.trim(),
       starts_at: evtStartsAt ? new Date(evtStartsAt).toISOString() : null,
       location: evtLocation || null,
+      google_map_link: evtMapsLink || null,
       is_public: evtIsPublic,
     });
     setEvtTitle("");
     setEvtStartsAt("");
     setEvtLocation("");
+    setEvtMapsLink("");
     setEvtIsPublic(true);
     setShowEventForm(false);
   };
@@ -513,6 +516,12 @@ export default function InvitationEditPage() {
                         {evt.starts_at ? ` · ${new Date(evt.starts_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
                         {evt.location ? ` · ${evt.location}` : ""}
                       </p>
+                      {evt.google_map_link ? (
+                        <a href={evt.google_map_link} target="_blank" rel="noreferrer"
+                          className="text-[10px] text-emerald-600 hover:underline">
+                          🗺️ Map link
+                        </a>
+                      ) : null}
                     </div>
                     <button
                       type="button"
@@ -557,6 +566,12 @@ export default function InvitationEditPage() {
                     <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Location</label>
                     <input value={evtLocation} onChange={(e) => setEvtLocation(e.target.value)}
                       placeholder="Venue or address"
+                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Google Maps Link</label>
+                    <input value={evtMapsLink} onChange={(e) => setEvtMapsLink(e.target.value)}
+                      placeholder="https://maps.google.com/…"
                       className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
                   </div>
                   <div className="flex items-center gap-2">
