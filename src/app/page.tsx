@@ -1,11 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useLogin } from "@/hooks/use-auth";
+import { apiErrorMessage } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth-store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiErrorMessage } from "@/lib/api";
-import { useLogin } from "@/hooks/use-auth";
-import { useAuthStore } from "@/stores/auth-store";
+import { FormEvent, useEffect, useState } from "react";
 
 const heroImageUrl = "/login-hero.jpg";
 
@@ -79,7 +79,10 @@ export default function Home() {
                 Log in
               </h2>
 
-              <label htmlFor="email" className="text-sm font-bold text-[#05603a]">
+              <label
+                htmlFor="email"
+                className="text-sm font-bold text-[#05603a]"
+              >
                 Email
               </label>
               <input
@@ -94,7 +97,10 @@ export default function Home() {
                 className="h-11 rounded-[22px] border border-[#a6f4c5] bg-white px-4 text-sm text-[#05603a] outline-none placeholder:text-black/35"
               />
 
-              <label htmlFor="password" className="text-sm font-bold text-[#05603a]">
+              <label
+                htmlFor="password"
+                className="text-sm font-bold text-[#05603a]"
+              >
                 Password
               </label>
               <input
@@ -117,8 +123,12 @@ export default function Home() {
                 {isLoading ? "Logging in..." : "Log in"}
               </button>
 
-              {error ? <p className="mt-1 text-sm text-[#b42318]">{error}</p> : null}
-              {status ? <p className="mt-1 text-sm text-[#05603a]">{status}</p> : null}
+              {error ? (
+                <p className="mt-1 text-sm text-[#b42318]">{error}</p>
+              ) : null}
+              {status ? (
+                <p className="mt-1 text-sm text-[#05603a]">{status}</p>
+              ) : null}
 
               <div className="mt-1 flex items-center justify-between text-sm text-[#05603a]">
                 <Link href="/forgot-password" className="underline">
