@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -39,6 +40,7 @@ export function RsvpTab({ weddingId }: { weddingId: number }) {
   });
   const updateRsvp = useUpdateRsvp(weddingId);
   const deleteRsvp = useDeleteRsvp(weddingId);
+  const confirm = useConfirm();
 
   return (
     <div className="space-y-4">
@@ -152,8 +154,14 @@ export function RsvpTab({ weddingId }: { weddingId: number }) {
                         variant="ghost"
                         size="icon"
                         aria-label="Delete RSVP"
-                        onClick={() => {
-                          if (confirm(`Delete RSVP from "${rsvp.guest_name}"?`)) {
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: `Delete RSVP from "${rsvp.guest_name}"?`,
+                              description:
+                                "This RSVP response will be permanently removed.",
+                            })
+                          ) {
                             deleteRsvp.mutate(rsvp.id);
                           }
                         }}

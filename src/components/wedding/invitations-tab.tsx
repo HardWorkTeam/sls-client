@@ -9,6 +9,7 @@ import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,7 @@ export function InvitationsTab({
   const createInvitation = useCreateInvitation(weddingId);
   const publishInvitation = usePublishInvitation(weddingId);
   const deleteInvitation = useDeleteInvitation(weddingId);
+  const confirm = useConfirm();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState<string | null>(null);
@@ -230,8 +232,14 @@ export function InvitationsTab({
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => {
-                      if (confirm("Delete this invitation?")) {
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: "Delete this invitation?",
+                          description:
+                            "The invitation and its share link will stop working.",
+                        })
+                      ) {
                         deleteInvitation.mutate(invitation.id);
                       }
                     }}

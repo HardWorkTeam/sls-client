@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const createGift = useCreateGift(weddingId);
   const createGuest = useCreateGuest(weddingId);
   const deleteGift = useDeleteGift(weddingId);
+  const confirm = useConfirm();
 
   const form = useForm<GiftForm>({
     defaultValues: {
@@ -217,8 +219,14 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
                       variant="ghost"
                       size="icon"
                       aria-label="Delete gift"
-                      onClick={() => {
-                        if (confirm("Delete this gift record?")) {
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: "Delete this gift record?",
+                            description:
+                              "This gift entry will be permanently removed.",
+                          })
+                        ) {
                           deleteGift.mutate(gift.id);
                         }
                       }}

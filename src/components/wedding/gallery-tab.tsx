@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +45,7 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
   const uploadMedia = useUploadMedia(weddingId);
   const togglePublic = useToggleMediaPublic(weddingId);
   const deleteMedia = useDeleteMedia(weddingId);
+  const confirm = useConfirm();
 
   const form = useForm<AlbumForm>({
     defaultValues: { name: "", description: "", is_public: false },
@@ -185,8 +187,14 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
                       type="button"
                       className="rounded bg-white/20 p-1 text-white hover:bg-red-500"
                       aria-label="Delete media"
-                      onClick={() => {
-                        if (confirm("Delete this media item?")) {
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: "Delete this media item?",
+                            description:
+                              "The photo or video will be permanently removed from the gallery.",
+                          })
+                        ) {
                           deleteMedia.mutate(item.id);
                         }
                       }}

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
   const createEvent = useCreateTimelineEvent(weddingId);
   const updateEvent = useUpdateTimelineEvent(weddingId);
   const deleteEvent = useDeleteTimelineEvent(weddingId);
+  const confirm = useConfirm();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TimelineEvent | null>(null);
@@ -164,8 +166,14 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
                       variant="ghost"
                       size="icon"
                       aria-label={`Delete ${event.title}`}
-                      onClick={() => {
-                        if (confirm(`Delete "${event.title}"?`)) {
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: `Delete "${event.title}"?`,
+                            description:
+                              "This timeline event will be permanently removed.",
+                          })
+                        ) {
                           deleteEvent.mutate(event.id);
                         }
                       }}

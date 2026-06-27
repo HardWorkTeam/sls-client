@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,6 +106,7 @@ export function GuestsTab({
   const createGroup = useCreateGuestGroup(weddingId);
   const updateGroup = useUpdateGuestGroup(weddingId);
   const deleteGroup = useDeleteGuestGroup(weddingId);
+  const confirm = useConfirm();
 
   const guestTotal = data?.meta?.total ?? 0;
   const atGuestLimit = guestLimit != null && guestTotal >= guestLimit;
@@ -464,8 +466,14 @@ export function GuestsTab({
                         variant="ghost"
                         size="icon"
                         aria-label={`Delete ${guest.name}`}
-                        onClick={() => {
-                          if (confirm(`Delete guest "${guest.name}"?`)) {
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: `Delete guest "${guest.name}"?`,
+                              description:
+                                "The guest and their RSVP/seating assignments will be removed.",
+                            })
+                          ) {
                             deleteGuest.mutate(guest.id);
                           }
                         }}
@@ -602,8 +610,14 @@ export function GuestsTab({
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => {
-                            if (confirm(`Delete group "${group.name}"?`)) {
+                          onClick={async () => {
+                            if (
+                              await confirm({
+                                title: `Delete group "${group.name}"?`,
+                                description:
+                                  "Guests in this group will be ungrouped, not deleted.",
+                              })
+                            ) {
                               deleteGroup.mutate(group.id);
                             }
                           }}

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,7 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   const unassignSeat = useUnassignSeat(weddingId);
   const autoSeat = useAutoSeat(weddingId);
   const importTables = useImportTables(weddingId);
+  const confirm = useConfirm();
 
   const fileInput = useRef<HTMLInputElement>(null);
   const [tableDialog, setTableDialog] = useState(false);
@@ -199,8 +201,13 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                     variant="ghost"
                     size="icon"
                     aria-label={`Delete ${table.table_name}`}
-                    onClick={() => {
-                      if (confirm(`Delete "${table.table_name}"? Seated guests will be unassigned.`)) {
+                    onClick={async () => {
+                      if (
+                        await confirm({
+                          title: `Delete "${table.table_name}"?`,
+                          description: "Seated guests will be unassigned.",
+                        })
+                      ) {
                         deleteTable.mutate(table.id);
                       }
                     }}

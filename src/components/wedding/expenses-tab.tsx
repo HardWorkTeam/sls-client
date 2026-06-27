@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,6 +76,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
   const { data: summary } = useExpenseSummary(weddingId);
   const createExpense = useCreateExpense(weddingId);
   const deleteExpense = useDeleteExpense(weddingId);
+  const confirm = useConfirm();
 
   const form = useForm<ExpenseForm>({ defaultValues: EMPTY_FORM });
 
@@ -191,8 +193,14 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
                       variant="ghost"
                       size="icon"
                       aria-label="Delete expense"
-                      onClick={() => {
-                        if (confirm("Delete this expense record?")) {
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: "Delete this expense record?",
+                            description:
+                              "This expense entry will be permanently removed.",
+                          })
+                        ) {
                           deleteExpense.mutate(expense.id);
                         }
                       }}

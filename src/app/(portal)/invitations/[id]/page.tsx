@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,6 +106,7 @@ export default function InvitationEditPage() {
   const { data: timelineEvents } = useTimeline(wedding?.id ?? 0);
   const createTimelineEvent = useCreateTimelineEvent(wedding?.id ?? 0);
   const deleteTimelineEvent = useDeleteTimelineEvent(wedding?.id ?? 0);
+  const confirm = useConfirm();
 
   const invitation = invitations?.find((i) => i.id === invitationId);
 
@@ -525,8 +527,16 @@ export default function InvitationEditPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm(`Delete "${evt.title}"?`)) deleteTimelineEvent.mutate(evt.id);
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: `Delete "${evt.title}"?`,
+                            description:
+                              "This timeline event will be permanently removed.",
+                          })
+                        ) {
+                          deleteTimelineEvent.mutate(evt.id);
+                        }
                       }}
                       className="ml-2 shrink-0 text-stone-300 hover:text-red-500"
                     >
