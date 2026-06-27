@@ -61,11 +61,15 @@ type GuestForm = z.infer<typeof guestSchema>;
 export function GuestsTab({
   weddingId,
   guestLimit,
+  canShareInvite = true,
 }: {
   weddingId: number;
   // Plan guest cap (null/undefined = unlimited); used to show a banner and
   // disable adding once reached. The API enforces the real limit.
   guestLimit?: number | null;
+  // Whether the plan includes personalized invitation links (the RSVP module).
+  // FREE packages have no RSVP site, so the copy-link action is hidden for them.
+  canShareInvite?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [groupId, setGroupId] = useState("");
@@ -426,15 +430,17 @@ export function GuestsTab({
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Copy invitation link for ${guest.name}`}
-                        title="Copy personalized invitation link"
-                        onClick={() => copyInviteLink(guest)}
-                      >
-                        <Send className="h-4 w-4 text-emerald-600" />
-                      </Button>
+                      {canShareInvite ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Copy invitation link for ${guest.name}`}
+                          title="Copy personalized invitation link"
+                          onClick={() => copyInviteLink(guest)}
+                        >
+                          <Send className="h-4 w-4 text-emerald-600" />
+                        </Button>
+                      ) : null}
                       <Button
                         variant="ghost"
                         size="icon"
