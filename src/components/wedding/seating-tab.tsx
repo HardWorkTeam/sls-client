@@ -1,7 +1,7 @@
 "use client";
 
-import { Plus, Trash2, Wand2, X } from "lucide-react";
-import { useState } from "react";
+import { Download, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +17,13 @@ import {
   useAutoSeat,
   useCreateTable,
   useDeleteTable,
+  useImportTables,
   useSeatingReport,
   useTables,
   useUnassignSeat,
 } from "@/hooks/use-seating";
 import { apiErrorMessage } from "@/lib/api";
+import { seatingService } from "@/services/seating-service";
 
 interface TableForm {
   table_name: string;
@@ -40,7 +42,9 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   const assignSeat = useAssignSeat(weddingId);
   const unassignSeat = useUnassignSeat(weddingId);
   const autoSeat = useAutoSeat(weddingId);
+  const importTables = useImportTables(weddingId);
 
+  const fileInput = useRef<HTMLInputElement>(null);
   const [tableDialog, setTableDialog] = useState(false);
   const [assignTableId, setAssignTableId] = useState<number | null>(null);
   const [assignGuestId, setAssignGuestId] = useState("");
@@ -94,6 +98,27 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
     }
   };
 
+  const onImport = async (file: File) => {
+    setError(null);
+    setFeedback(null);
+    try {
+      const result = await importTables.mutateAsync(file);
+      setFeedback(result.message);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  };
+
+  const onExport = async () => {
+    const blob = await seatingService.exportCsv(weddingId);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "seating.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -106,7 +131,29 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
         ) : (
           <span />
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={fileInput}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) onImport(file);
+              event.target.value = "";
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInput.current?.click()}
+            disabled={importTables.isPending}
+          >
+            <Download className="h-4 w-4" /> Import CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={onExport}>
+            <Upload className="h-4 w-4" /> Export
+          </Button>
           <Button variant="outline" size="sm" onClick={onAutoSeat} disabled={autoSeat.isPending}>
             <Wand2 className="h-4 w-4" /> Auto Seating
           </Button>

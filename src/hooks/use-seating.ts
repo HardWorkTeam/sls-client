@@ -64,6 +64,14 @@ export function useDeleteTable(weddingId: number) {
   });
 }
 
+export function useImportTables(weddingId: number) {
+  const invalidate = useInvalidateSeating(weddingId);
+  return useMutation({
+    mutationFn: (file: File) => seatingService.importCsv(weddingId, file),
+    onSuccess: invalidate,
+  });
+}
+
 export function useAssignSeat(weddingId: number) {
   const invalidate = useInvalidateSeating(weddingId);
   return useMutation({

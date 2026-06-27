@@ -36,6 +36,23 @@ export const seatingService = {
     await api.delete(`/weddings/${weddingId}/tables/${tableId}`);
   },
 
+  async importCsv(weddingId: number, file: File) {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await api.post<{
+      message: string;
+      data: { imported: number; skipped: number; errors: string[] };
+    }>(`/weddings/${weddingId}/tables/import`, form);
+    return data;
+  },
+
+  async exportCsv(weddingId: number): Promise<Blob> {
+    const { data } = await api.get(`/weddings/${weddingId}/tables/export`, {
+      responseType: "blob",
+    });
+    return data as Blob;
+  },
+
   async assign(
     weddingId: number,
     payload: { guest_id: number; wedding_table_id: number; seat_number?: number | null },

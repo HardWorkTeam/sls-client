@@ -298,10 +298,10 @@ export function GuestsTab({
             }}
           />
           <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
-            <Upload className="h-4 w-4" /> Import CSV
+            <Download className="h-4 w-4" /> Import CSV
           </Button>
           <Button variant="outline" size="sm" onClick={onExport}>
-            <Download className="h-4 w-4" /> Export
+            <Upload className="h-4 w-4" /> Export
           </Button>
           <Button variant="outline" size="sm" onClick={() => { openCreateGroup(); setGroupDialogOpen(true); }}>
             <Users className="h-4 w-4" /> Groups
