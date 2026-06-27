@@ -227,16 +227,27 @@ export function GuestsTab({
   };
 
   const onSubmitGroup = async () => {
-    if (!groupName.trim()) {
+    const trimmedName = groupName.trim();
+    if (!trimmedName) {
       setGroupError("Name is required.");
+      return;
+    }
+    // Group names must be unique within the wedding (the API enforces this too).
+    const isDuplicate = (groups ?? []).some(
+      (group) =>
+        group.id !== editingGroup?.id &&
+        group.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (isDuplicate) {
+      setGroupError("A group with this name already exists.");
       return;
     }
     setGroupError(null);
     try {
       if (editingGroup) {
-        await updateGroup.mutateAsync({ groupId: editingGroup.id, payload: { name: groupName.trim(), type: groupType } });
+        await updateGroup.mutateAsync({ groupId: editingGroup.id, payload: { name: trimmedName, type: groupType } });
       } else {
-        await createGroup.mutateAsync({ name: groupName.trim(), type: groupType });
+        await createGroup.mutateAsync({ name: trimmedName, type: groupType });
       }
       openCreateGroup();
     } catch (err) {
