@@ -167,6 +167,12 @@ export default function InvitationEditPage() {
   const [evtIsPublic, setEvtIsPublic] = useState(true);
 
   // ── Initialise from API data ──────────────────────────────────────────────
+  // These effects seed editable form state from async-loaded data. setState in
+  // an effect is the correct tool for "hydrate editable fields once the record
+  // arrives" — the values become user-editable afterwards, so they can't be
+  // derived during render. The key-based remount alternative isn't worth the
+  // churn here, so the React Compiler rule is scoped-off for these two effects.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!invitation) return;
     setTemplateId(invitation.invitation_template_id ? String(invitation.invitation_template_id) : "");
@@ -217,6 +223,7 @@ export default function InvitationEditPage() {
     setMapsLink(wedding.google_map_link ?? "");
     setStoryDescription(wedding.story_description ?? "");
   }, [wedding]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // ── Save all ──────────────────────────────────────────────────────────────
   const handleSave = async () => {
