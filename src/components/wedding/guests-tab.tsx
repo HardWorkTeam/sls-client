@@ -79,6 +79,9 @@ export function GuestsTab({
   const [editing, setEditing] = useState<Guest | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [bulkInvitationId, setBulkInvitationId] = useState("");
+  // Which invitation the "copy link" action uses for guests that have no
+  // invitation of their own assigned. Defaults to the first invitation.
+  const [linkInvitationId, setLinkInvitationId] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -193,20 +196,31 @@ export function GuestsTab({
       current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
     );
 
+  // The invitation used as the fallback when a guest has none of their own
+  // assigned. Honours the user's selection, otherwise the first invitation.
+  const fallbackInvitation =
+    (invitations ?? []).find((inv) => String(inv.id) === linkInvitationId) ??
+    invitations?.[0];
+
   // Copy a personalized invitation link for a guest. Uses the guest's assigned
-  // invitation, falling back to the wedding's first invitation when none is set.
+  // invitation; when none is set it falls back to the invitation chosen in the
+  // link-source selector (or the first invitation if there's only one).
   const copyInviteLink = async (guest: Guest) => {
     setFeedback(null);
     setError(null);
-    const code = guest.invitation?.invitation_code ?? invitations?.[0]?.invitation_code;
+    const invitation = guest.invitation ?? fallbackInvitation;
+    const code = invitation?.invitation_code;
     if (!code) {
       setError("Create an invitation first, then you can send a personalized link.");
       return;
     }
     const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}`;
+    const invitationLabel = invitation?.title ?? code;
     try {
       await navigator.clipboard.writeText(link);
-      setFeedback(`Invitation link for ${guest.name} copied to clipboard.`);
+      setFeedback(
+        `Invitation link for ${guest.name} (${invitationLabel}) copied to clipboard.`,
+      );
     } catch {
       // Clipboard API may be unavailable (e.g. non-secure context) — surface the
       // link so the user can copy it manually.
@@ -332,6 +346,29 @@ export function GuestsTab({
             </>
           ) : null}
         </p>
+      ) : null}
+
+      {canShareInvite && (invitations?.length ?? 0) > 1 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5">
+          <Label htmlFor="link-invitation" className="text-sm text-zinc-600">
+            Copy links for
+          </Label>
+          <Select
+            id="link-invitation"
+            className="w-56"
+            value={fallbackInvitation ? String(fallbackInvitation.id) : ""}
+            onChange={(event) => setLinkInvitationId(event.target.value)}
+          >
+            {(invitations ?? []).map((invitation) => (
+              <option key={invitation.id} value={invitation.id}>
+                {invitation.title ?? invitation.invitation_code}
+              </option>
+            ))}
+          </Select>
+          <p className="text-xs text-zinc-400">
+            Guests with their own assigned invitation keep it.
+          </p>
+        </div>
       ) : null}
 
       {selected.length > 0 ? (
