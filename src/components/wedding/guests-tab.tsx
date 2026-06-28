@@ -301,6 +301,20 @@ export function GuestsTab({
             </option>
           ))}
         </Select>
+        {canShareInvite && (invitations?.length ?? 0) > 1 ? (
+          <Select
+            className="w-48"
+            title="Invitation used when copying a guest's personalized link"
+            value={fallbackInvitation ? String(fallbackInvitation.id) : ""}
+            onChange={(event) => setLinkInvitationId(event.target.value)}
+          >
+            {(invitations ?? []).map((invitation) => (
+              <option key={invitation.id} value={invitation.id}>
+                Link: {invitation.title ?? invitation.invitation_code}
+              </option>
+            ))}
+          </Select>
+        ) : null}
         <div className="ml-auto flex flex-wrap gap-2">
           <input
             ref={fileInput}
@@ -346,29 +360,6 @@ export function GuestsTab({
             </>
           ) : null}
         </p>
-      ) : null}
-
-      {canShareInvite && (invitations?.length ?? 0) > 1 ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5">
-          <Label htmlFor="link-invitation" className="text-sm text-zinc-600">
-            Copy links for
-          </Label>
-          <Select
-            id="link-invitation"
-            className="w-56"
-            value={fallbackInvitation ? String(fallbackInvitation.id) : ""}
-            onChange={(event) => setLinkInvitationId(event.target.value)}
-          >
-            {(invitations ?? []).map((invitation) => (
-              <option key={invitation.id} value={invitation.id}>
-                {invitation.title ?? invitation.invitation_code}
-              </option>
-            ))}
-          </Select>
-          <p className="text-xs text-zinc-400">
-            Guests with their own assigned invitation keep it.
-          </p>
-        </div>
       ) : null}
 
       {selected.length > 0 ? (
