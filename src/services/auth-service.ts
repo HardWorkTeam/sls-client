@@ -20,6 +20,8 @@ export const authService = {
       email,
       password,
       device_name: "client-portal",
+      // Couple portal: the backend rejects admin/organizer accounts here.
+      portal: "couple",
     });
     return data;
   },
