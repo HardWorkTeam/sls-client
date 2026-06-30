@@ -1,7 +1,7 @@
 "use client";
 
-import { Download, Eye, EyeOff, FolderPlus, Trash2, Upload, Video } from "lucide-react";
-import { useRef, useState } from "react";
+import { Download, Eye, EyeOff, FolderPlus, Trash2, Upload, Video, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ import {
   useUploadMedia,
 } from "@/hooks/use-gallery";
 import { apiErrorMessage } from "@/lib/api";
+import type { MediaItem } from "@/types/api";
 
 interface AlbumForm {
   name: string;
@@ -34,7 +35,23 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
   const [page, setPage] = useState(1);
   const [albumDialog, setAlbumDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The media item shown full-size in the lightbox (null = closed).
+  const [lightbox, setLightbox] = useState<MediaItem | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Close the lightbox on Escape.
+  useEffect(() => {
+    if (!lightbox) return;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightbox(null);
+    };
+    document.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+    };
+  }, [lightbox]);
 
   const { data: albums } = useAlbums(weddingId);
   const { data: media, isLoading } = useMedia(weddingId, {
@@ -143,16 +160,22 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
                 className="group relative overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100"
               >
                 {item.media_type === "video" ? (
-                  <div className="flex aspect-square items-center justify-center bg-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setLightbox(item)}
+                    aria-label={`Play ${item.original_name ?? "video"}`}
+                    className="flex aspect-square w-full cursor-pointer items-center justify-center bg-zinc-800"
+                  >
                     <Video className="h-10 w-10 text-zinc-400" />
-                  </div>
+                  </button>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={item.thumbnail_url ?? item.url}
                     alt={item.original_name ?? "Wedding photo"}
-                    className="aspect-square w-full object-cover"
+                    className="aspect-square w-full cursor-pointer object-cover"
                     loading="lazy"
+                    onClick={() => setLightbox(item)}
                   />
                 )}
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
@@ -240,6 +263,43 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
           </div>
         </form>
       </Dialog>
+
+      {/* Full-size media lightbox */}
+      {lightbox ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={lightbox.original_name ?? "Media preview"}
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/25"
+            aria-label="Close preview"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          {lightbox.media_type === "video" ? (
+            <video
+              src={lightbox.url}
+              controls
+              autoPlay
+              className="max-h-[90vh] max-w-full rounded-lg"
+              onClick={(event) => event.stopPropagation()}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={lightbox.url}
+              alt={lightbox.original_name ?? "Wedding photo"}
+              className="max-h-[90vh] max-w-full rounded-lg object-contain"
+              onClick={(event) => event.stopPropagation()}
+            />
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
