@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Guest, GuestGroup, Paginated } from "@/types/api";
+import type { CheckInStats, Guest, GuestGroup, Paginated } from "@/types/api";
 
 export interface GuestListParams {
   search?: string;
@@ -74,6 +74,45 @@ export const guestService = {
     const { data } = await api.post<{ message: string }>(
       `/weddings/${weddingId}/guests/bulk-invite`,
       { guest_ids: guestIds, invitation_id: invitationId },
+    );
+    return data;
+  },
+
+  // --- Wedding-day check-in -------------------------------------------------
+
+  /** Mark a guest as arrived by their scanned QR token. */
+  async checkInByToken(
+    weddingId: number,
+    token: string,
+  ): Promise<{ guest: Guest; alreadyCheckedIn: boolean }> {
+    const { data } = await api.post<{ data: Guest; already_checked_in: boolean }>(
+      `/weddings/${weddingId}/guests/check-in`,
+      { token },
+    );
+    return { guest: data.data, alreadyCheckedIn: data.already_checked_in };
+  },
+
+  /** Manually set a guest's arrival status from the guest list. */
+  async setCheckIn(weddingId: number, guestId: number, arrived: boolean): Promise<Guest> {
+    const { data } = await api.post<{ data: Guest }>(
+      `/weddings/${weddingId}/guests/${guestId}/check-in`,
+      { arrived },
+    );
+    return data.data;
+  },
+
+  async checkInStats(weddingId: number): Promise<CheckInStats> {
+    const { data } = await api.get<{ data: CheckInStats }>(
+      `/weddings/${weddingId}/guests/check-in/stats`,
+    );
+    return data.data;
+  },
+
+  /** Fetch a guest's check-in QR code as raw SVG markup. */
+  async qrSvg(weddingId: number, guestId: number): Promise<string> {
+    const { data } = await api.get<string>(
+      `/weddings/${weddingId}/guests/${guestId}/qr`,
+      { responseType: "text", headers: { Accept: "image/svg+xml" } },
     );
     return data;
   },

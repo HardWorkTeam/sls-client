@@ -1,6 +1,19 @@
 "use client";
 
-import { Download, Pencil, Plus, Search, Send, Trash2, Upload, Users } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Download,
+  Pencil,
+  Plus,
+  QrCode,
+  ScanLine,
+  Search,
+  Send,
+  Trash2,
+  Upload,
+  Users,
+} from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -26,6 +39,7 @@ import {
 } from "@/components/ui/table";
 import {
   useBulkInvite,
+  useCheckInStats,
   useCreateGuest,
   useCreateGuestGroup,
   useDeleteGuest,
@@ -33,6 +47,7 @@ import {
   useGuestGroups,
   useGuests,
   useImportGuests,
+  useSetCheckIn,
   useUpdateGuest,
   useUpdateGuestGroup,
 } from "@/hooks/use-guests";
@@ -41,6 +56,8 @@ import { apiErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { guestService } from "@/services/guest-service";
 import type { Guest, GuestGroup } from "@/types/api";
+import { CheckInScanner } from "./check-in-scanner";
+import { GuestQrDialog } from "./guest-qr-dialog";
 
 const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
 
@@ -86,6 +103,10 @@ export function GuestsTab({
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // Wedding-day check-in UI state.
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [qrGuest, setQrGuest] = useState<Guest | null>(null);
+
   // Group management state
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GuestGroup | null>(null);
@@ -109,7 +130,16 @@ export function GuestsTab({
   const createGroup = useCreateGuestGroup(weddingId);
   const updateGroup = useUpdateGuestGroup(weddingId);
   const deleteGroup = useDeleteGuestGroup(weddingId);
+  const setCheckIn = useSetCheckIn(weddingId);
+  const { data: checkInStats } = useCheckInStats(weddingId);
   const confirm = useConfirm();
+
+  const toggleCheckIn = (guest: Guest) => {
+    setError(null);
+    setCheckIn
+      .mutateAsync({ guestId: guest.id, arrived: !guest.checked_in_at })
+      .catch((err) => setError(apiErrorMessage(err)));
+  };
 
   const guestTotal = data?.meta?.total ?? 0;
   const atGuestLimit = guestLimit != null && guestTotal >= guestLimit;
@@ -214,7 +244,10 @@ export function GuestsTab({
       setError("Create an invitation first, then you can send a personalized link.");
       return;
     }
-    const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}`;
+    // Include the guest's check-in token so their invite shows a personal
+    // "my check-in QR" pass they can present at the door on the wedding day.
+    const tokenParam = guest.check_in_token ? `&t=${guest.check_in_token}` : "";
+    const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}${tokenParam}`;
     const invitationLabel = invitation?.title ?? code;
     try {
       await navigator.clipboard.writeText(link);
@@ -336,6 +369,9 @@ export function GuestsTab({
           <Button variant="outline" size="sm" onClick={() => { openCreateGroup(); setGroupDialogOpen(true); }}>
             <Users className="h-4 w-4" /> Groups
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setScannerOpen(true)}>
+            <ScanLine className="h-4 w-4" /> Check-in Scanner
+          </Button>
           <Button size="sm" onClick={openCreate} disabled={atGuestLimit}>
             <Plus className="h-4 w-4" /> Add Guest
           </Button>
@@ -359,6 +395,15 @@ export function GuestsTab({
               to add more.
             </>
           ) : null}
+        </p>
+      ) : null}
+
+      {checkInStats && checkInStats.total > 0 ? (
+        <p className="text-sm text-zinc-500">
+          <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-600" />
+          <span className="font-medium text-emerald-700">{checkInStats.arrived}</span>{" "}
+          of {checkInStats.total} guests checked in ({checkInStats.pending} not yet
+          arrived).
         </p>
       ) : null}
 
@@ -422,7 +467,8 @@ export function GuestsTab({
                 <TableHead>Group</TableHead>
                 <TableHead>Table / Seat</TableHead>
                 <TableHead>Invitation</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
+                <TableHead>Arrived</TableHead>
+                <TableHead className="w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -470,7 +516,41 @@ export function GuestsTab({
                     )}
                   </TableCell>
                   <TableCell>
+                    <button
+                      type="button"
+                      onClick={() => toggleCheckIn(guest)}
+                      disabled={setCheckIn.isPending}
+                      title={
+                        guest.checked_in_at
+                          ? `Arrived ${new Date(guest.checked_in_at).toLocaleString()} — click to undo`
+                          : "Mark as arrived"
+                      }
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
+                        guest.checked_in_at
+                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200",
+                      )}
+                    >
+                      {guest.checked_in_at ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <Circle className="h-3.5 w-3.5" />
+                      )}
+                      {guest.checked_in_at ? "Arrived" : "Mark"}
+                    </button>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Show check-in QR for ${guest.name}`}
+                        title="Check-in QR code"
+                        onClick={() => setQrGuest(guest)}
+                      >
+                        <QrCode className="h-4 w-4 text-zinc-600" />
+                      </Button>
                       {canShareInvite ? (
                         <Button
                           variant="ghost"
@@ -692,6 +772,24 @@ export function GuestsTab({
           ) : null}
         </div>
       </Dialog>
+
+      {/* Wedding-day check-in scanner */}
+      <Dialog
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        title="Check-in Scanner"
+        description="Scan each guest's invitation QR code as they arrive."
+        className="max-w-md"
+      >
+        {scannerOpen ? <CheckInScanner weddingId={weddingId} /> : null}
+      </Dialog>
+
+      {/* Per-guest QR code */}
+      <GuestQrDialog
+        weddingId={weddingId}
+        guest={qrGuest}
+        onClose={() => setQrGuest(null)}
+      />
     </div>
   );
 }

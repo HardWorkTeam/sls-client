@@ -207,11 +207,19 @@ export interface Guest {
   address: string | null;
   note: string | null;
   is_vip: boolean;
+  check_in_token?: string | null;
+  checked_in_at?: string | null;
   group?: GuestGroup | null;
   invitation?: Invitation | null;
   seating?: GuestSeating | null;
   rsvp_responses_count?: number;
   created_at?: string;
+}
+
+export interface CheckInStats {
+  total: number;
+  arrived: number;
+  pending: number;
 }
 
 export type RsvpStatus = "pending" | "accepted" | "declined" | "maybe";

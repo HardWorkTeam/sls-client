@@ -12,6 +12,8 @@ export const guestKeys = {
   list: (weddingId: number, params: GuestListParams) =>
     ["weddings", weddingId, "guests", params] as const,
   groups: (weddingId: number) => ["weddings", weddingId, "guest-groups"] as const,
+  checkInStats: (weddingId: number) =>
+    ["weddings", weddingId, "guests", "check-in-stats"] as const,
 };
 
 export function useGuests(weddingId: number, params: GuestListParams = {}) {
@@ -37,6 +39,33 @@ function useInvalidateGuests(weddingId: number) {
     queryClient.invalidateQueries({ queryKey: ["weddings", weddingId, "rsvps"] });
     queryClient.invalidateQueries({ queryKey: ["weddings", weddingId, "seating"] });
   };
+}
+
+export function useCheckInStats(weddingId: number) {
+  return useQuery({
+    queryKey: guestKeys.checkInStats(weddingId),
+    queryFn: () => guestService.checkInStats(weddingId),
+    enabled: weddingId > 0,
+  });
+}
+
+/** Check a guest in by their scanned QR token. */
+export function useScanCheckIn(weddingId: number) {
+  const invalidate = useInvalidateGuests(weddingId);
+  return useMutation({
+    mutationFn: (token: string) => guestService.checkInByToken(weddingId, token),
+    onSuccess: invalidate,
+  });
+}
+
+/** Manually toggle a guest's arrival status. */
+export function useSetCheckIn(weddingId: number) {
+  const invalidate = useInvalidateGuests(weddingId);
+  return useMutation({
+    mutationFn: ({ guestId, arrived }: { guestId: number; arrived: boolean }) =>
+      guestService.setCheckIn(weddingId, guestId, arrived),
+    onSuccess: invalidate,
+  });
 }
 
 export function useCreateGuest(weddingId: number) {
