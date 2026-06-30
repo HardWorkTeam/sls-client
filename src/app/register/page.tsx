@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PasswordInput } from "@/components/ui/password-input";
 import { apiErrorMessage } from "@/lib/api";
 import { useRegister } from "@/hooks/use-auth";
 import { useAuthStore } from "@/stores/auth-store";
@@ -109,9 +110,8 @@ export default function RegisterPage() {
               <label htmlFor="password" className={labelClass}>
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="At least 8 characters"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -123,9 +123,8 @@ export default function RegisterPage() {
               <label htmlFor="password_confirmation" className={labelClass}>
                 Confirm password
               </label>
-              <input
+              <PasswordInput
                 id="password_confirmation"
-                type="password"
                 placeholder="Re-enter your password"
                 value={passwordConfirmation}
                 onChange={(event) => setPasswordConfirmation(event.target.value)}

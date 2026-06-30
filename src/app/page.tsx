@@ -1,5 +1,6 @@
 "use client";
 
+import { PasswordInput } from "@/components/ui/password-input";
 import { useLogin } from "@/hooks/use-auth";
 import { apiErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
@@ -103,10 +104,9 @@ export default function Home() {
               >
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 placeholder="Please input your password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}

@@ -1,10 +1,11 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { PasswordInput } from "@/components/ui/password-input";
+import { useResetPassword } from "@/hooks/use-auth";
+import { apiErrorMessage } from "@/lib/api";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiErrorMessage } from "@/lib/api";
-import { useResetPassword } from "@/hooks/use-auth";
+import { FormEvent, Suspense, useState } from "react";
 
 const heroImageUrl = "/login-hero.jpg";
 const fieldClass =
@@ -56,12 +57,18 @@ function ResetPasswordForm() {
           <p className="text-sm text-[#b42318]">
             This reset link is invalid or has expired.
           </p>
-          <Link href="/forgot-password" className="font-bold text-[#027a48] underline">
+          <Link
+            href="/forgot-password"
+            className="font-bold text-[#027a48] underline"
+          >
             Request a new link
           </Link>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2.5 md:mt-4">
+        <form
+          onSubmit={onSubmit}
+          className="mt-3 flex flex-col gap-2.5 md:mt-4"
+        >
           <label htmlFor="email" className={labelClass}>
             Email
           </label>
@@ -77,9 +84,8 @@ function ResetPasswordForm() {
           <label htmlFor="password" className={labelClass}>
             New password
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             placeholder="At least 8 characters"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
@@ -91,10 +97,10 @@ function ResetPasswordForm() {
           <label htmlFor="password_confirmation" className={labelClass}>
             Confirm new password
           </label>
-          <input
+          <PasswordInput
             id="password_confirmation"
-            type="password"
             value={passwordConfirmation}
+            placeholder="Confirm new password"
             onChange={(event) => setPasswordConfirmation(event.target.value)}
             autoComplete="new-password"
             required
@@ -109,7 +115,9 @@ function ResetPasswordForm() {
             {resetPassword.isPending ? "Resetting..." : "Reset password"}
           </button>
 
-          {error ? <p className="mt-1 text-sm text-[#b42318]">{error}</p> : null}
+          {error ? (
+            <p className="mt-1 text-sm text-[#b42318]">{error}</p>
+          ) : null}
 
           <p className="mt-1 text-center text-sm text-[#05603a]">
             <Link href="/" className="font-bold underline">

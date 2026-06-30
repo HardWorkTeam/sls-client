@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useChangePassword, useUpdateProfile } from "@/hooks/use-auth";
 import { apiErrorMessage } from "@/lib/api";
@@ -126,26 +127,23 @@ export default function SettingsPage() {
           <form onSubmit={onPasswordSubmit} className="space-y-3">
             <div>
               <Label htmlFor="current-password">Current password</Label>
-              <Input
+              <PasswordInput
                 id="current-password"
-                type="password"
                 {...passwordForm.register("current_password", { required: true })}
               />
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="new-password">New password</Label>
-                <Input
+                <PasswordInput
                   id="new-password"
-                  type="password"
                   {...passwordForm.register("password", { required: true, minLength: 8 })}
                 />
               </div>
               <div>
                 <Label htmlFor="confirm-password">Confirm new password</Label>
-                <Input
+                <PasswordInput
                   id="confirm-password"
-                  type="password"
                   {...passwordForm.register("password_confirmation", { required: true })}
                 />
               </div>
