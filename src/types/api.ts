@@ -69,6 +69,7 @@ export interface PlanCapabilities {
     expense: boolean;
     rsvp: boolean;
     timeline: boolean;
+    checkin: boolean;
   };
   guest_limit: number | null;
   invitation_design_limit: number | null;

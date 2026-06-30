@@ -17,6 +17,8 @@ export default function GuestsPage() {
           // Personalized invite links require the RSVP module. FREE packages
           // don't include it, so the copy-link action is hidden for them.
           canShareInvite={wedding.capabilities ? wedding.capabilities.modules.rsvp : true}
+          // Wedding-day QR check-in is a plan-gated module.
+          canCheckIn={wedding.capabilities ? wedding.capabilities.modules.checkin : false}
         />
       )}
     </WeddingPage>

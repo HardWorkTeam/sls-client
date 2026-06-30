@@ -41,11 +41,11 @@ function useInvalidateGuests(weddingId: number) {
   };
 }
 
-export function useCheckInStats(weddingId: number) {
+export function useCheckInStats(weddingId: number, enabled = true) {
   return useQuery({
     queryKey: guestKeys.checkInStats(weddingId),
     queryFn: () => guestService.checkInStats(weddingId),
-    enabled: weddingId > 0,
+    enabled: weddingId > 0 && enabled,
   });
 }
 

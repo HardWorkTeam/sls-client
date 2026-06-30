@@ -80,6 +80,7 @@ export function GuestsTab({
   weddingId,
   guestLimit,
   canShareInvite = true,
+  canCheckIn = true,
 }: {
   weddingId: number;
   // Plan guest cap (null/undefined = unlimited); used to show a banner and
@@ -88,6 +89,10 @@ export function GuestsTab({
   // Whether the plan includes personalized invitation links (the RSVP module).
   // FREE packages have no RSVP site, so the copy-link action is hidden for them.
   canShareInvite?: boolean;
+  // Whether the plan includes wedding-day QR check-in. When false the scanner,
+  // per-guest QR, arrival column and the digital check-in pass are all hidden.
+  // The API also 403s the check-in routes for these plans.
+  canCheckIn?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [groupId, setGroupId] = useState("");
@@ -131,7 +136,7 @@ export function GuestsTab({
   const updateGroup = useUpdateGuestGroup(weddingId);
   const deleteGroup = useDeleteGuestGroup(weddingId);
   const setCheckIn = useSetCheckIn(weddingId);
-  const { data: checkInStats } = useCheckInStats(weddingId);
+  const { data: checkInStats } = useCheckInStats(weddingId, canCheckIn);
   const confirm = useConfirm();
 
   const toggleCheckIn = (guest: Guest) => {
@@ -245,8 +250,10 @@ export function GuestsTab({
       return;
     }
     // Include the guest's check-in token so their invite shows a personal
-    // "my check-in QR" pass they can present at the door on the wedding day.
-    const tokenParam = guest.check_in_token ? `&t=${guest.check_in_token}` : "";
+    // "my check-in QR" pass they can present at the door on the wedding day —
+    // only when the plan includes the check-in feature.
+    const tokenParam =
+      canCheckIn && guest.check_in_token ? `&t=${guest.check_in_token}` : "";
     const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}${tokenParam}`;
     const invitationLabel = invitation?.title ?? code;
     try {
@@ -369,9 +376,11 @@ export function GuestsTab({
           <Button variant="outline" size="sm" onClick={() => { openCreateGroup(); setGroupDialogOpen(true); }}>
             <Users className="h-4 w-4" /> Groups
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setScannerOpen(true)}>
-            <ScanLine className="h-4 w-4" /> Check-in Scanner
-          </Button>
+          {canCheckIn ? (
+            <Button variant="outline" size="sm" onClick={() => setScannerOpen(true)}>
+              <ScanLine className="h-4 w-4" /> Check-in Scanner
+            </Button>
+          ) : null}
           <Button size="sm" onClick={openCreate} disabled={atGuestLimit}>
             <Plus className="h-4 w-4" /> Add Guest
           </Button>
@@ -398,7 +407,7 @@ export function GuestsTab({
         </p>
       ) : null}
 
-      {checkInStats && checkInStats.total > 0 ? (
+      {canCheckIn && checkInStats && checkInStats.total > 0 ? (
         <p className="text-sm text-zinc-500">
           <CheckCircle2 className="mr-1 inline h-4 w-4 text-emerald-600" />
           <span className="font-medium text-emerald-700">{checkInStats.arrived}</span>{" "}
@@ -467,8 +476,8 @@ export function GuestsTab({
                 <TableHead>Group</TableHead>
                 <TableHead>Table / Seat</TableHead>
                 <TableHead>Invitation</TableHead>
-                <TableHead>Arrived</TableHead>
-                <TableHead className="w-32">Actions</TableHead>
+                {canCheckIn ? <TableHead>Arrived</TableHead> : null}
+                <TableHead className={canCheckIn ? "w-32" : "w-24"}>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -515,42 +524,46 @@ export function GuestsTab({
                       "—"
                     )}
                   </TableCell>
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => toggleCheckIn(guest)}
-                      disabled={setCheckIn.isPending}
-                      title={
-                        guest.checked_in_at
-                          ? `Arrived ${new Date(guest.checked_in_at).toLocaleString()} — click to undo`
-                          : "Mark as arrived"
-                      }
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
-                        guest.checked_in_at
-                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200",
-                      )}
-                    >
-                      {guest.checked_in_at ? (
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                      ) : (
-                        <Circle className="h-3.5 w-3.5" />
-                      )}
-                      {guest.checked_in_at ? "Arrived" : "Mark"}
-                    </button>
-                  </TableCell>
+                  {canCheckIn ? (
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => toggleCheckIn(guest)}
+                        disabled={setCheckIn.isPending}
+                        title={
+                          guest.checked_in_at
+                            ? `Arrived ${new Date(guest.checked_in_at).toLocaleString()} — click to undo`
+                            : "Mark as arrived"
+                        }
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
+                          guest.checked_in_at
+                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200",
+                        )}
+                      >
+                        {guest.checked_in_at ? (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        ) : (
+                          <Circle className="h-3.5 w-3.5" />
+                        )}
+                        {guest.checked_in_at ? "Arrived" : "Mark"}
+                      </button>
+                    </TableCell>
+                  ) : null}
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Show check-in QR for ${guest.name}`}
-                        title="Check-in QR code"
-                        onClick={() => setQrGuest(guest)}
-                      >
-                        <QrCode className="h-4 w-4 text-zinc-600" />
-                      </Button>
+                      {canCheckIn ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Show check-in QR for ${guest.name}`}
+                          title="Check-in QR code"
+                          onClick={() => setQrGuest(guest)}
+                        >
+                          <QrCode className="h-4 w-4 text-zinc-600" />
+                        </Button>
+                      ) : null}
                       {canShareInvite ? (
                         <Button
                           variant="ghost"
