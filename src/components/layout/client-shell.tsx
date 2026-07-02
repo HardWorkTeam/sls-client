@@ -1,7 +1,7 @@
 "use client";
 
 import { PageLoader } from "@/components/ui/spinner";
-import { useLogout, useMe } from "@/hooks/use-auth";
+import { useLogout, useMe, useSessionRefresh } from "@/hooks/use-auth";
 import { useMyWedding } from "@/hooks/use-my-wedding";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -91,6 +91,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
   );
 
   useMe();
+  useSessionRefresh();
 
   // Filter the sidebar to what the wedding can actually use. Features unlock
   // only once the plan is PAID (admin-confirmed) — a package that is merely
