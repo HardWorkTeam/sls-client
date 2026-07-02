@@ -178,7 +178,9 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
                     onClick={() => setLightbox(item)}
                   />
                 )}
-                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                {/* Touch screens have no hover, so keep the action bar visible
+                    below md and only use hover-reveal on pointer devices. */}
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
                   <p className="truncate text-xs text-white">{item.original_name}</p>
                   <div className="flex gap-1">
                     <a
