@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Printer } from "lucide-react";
+import { Check, Copy, Download, Printer } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -24,6 +24,7 @@ export function GuestQrDialog({
 }) {
   const [svg, setSvg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!guest) {
@@ -44,6 +45,18 @@ export function GuestQrDialog({
       active = false;
     };
   }, [weddingId, guest]);
+
+  const copyCode = async () => {
+    if (!guest?.check_in_code) return;
+    try {
+      await navigator.clipboard.writeText(guest.check_in_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API may be unavailable (non-secure context) — no-op; the
+      // code is still visible for the user to select and copy manually.
+    }
+  };
 
   const download = () => {
     if (!svg || !guest) return;
@@ -93,6 +106,34 @@ export function GuestQrDialog({
             />
           )}
         </div>
+        {guest?.check_in_code ? (
+          <div className="w-full">
+            <p className="mb-1 text-center text-xs text-zinc-500">
+              No camera? Type this code into the Check-in Scanner.
+            </p>
+            <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+              <code className="flex-1 text-center font-mono text-lg font-semibold tracking-widest text-zinc-800">
+                {guest.check_in_code}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyCode}
+                aria-label="Copy check-in code"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 text-emerald-600" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" /> Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : null}
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={download} disabled={!svg}>
             <Download className="h-4 w-4" /> Download

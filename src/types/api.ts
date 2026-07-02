@@ -209,6 +209,7 @@ export interface Guest {
   note: string | null;
   is_vip: boolean;
   check_in_token?: string | null;
+  check_in_code?: string | null;
   checked_in_at?: string | null;
   group?: GuestGroup | null;
   invitation?: Invitation | null;

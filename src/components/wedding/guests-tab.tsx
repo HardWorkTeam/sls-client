@@ -249,11 +249,12 @@ export function GuestsTab({
       setError("Create an invitation first, then you can send a personalized link.");
       return;
     }
-    // Include the guest's check-in token so their invite shows a personal
+    // Include the guest's short check-in code so their invite shows a personal
     // "my check-in QR" pass they can present at the door on the wedding day —
-    // only when the plan includes the check-in feature.
+    // only when the plan includes the check-in feature. The code drives both
+    // the QR and the readable text on the pass.
     const tokenParam =
-      canCheckIn && guest.check_in_token ? `&t=${guest.check_in_token}` : "";
+      canCheckIn && guest.check_in_code ? `&t=${guest.check_in_code}` : "";
     const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}${tokenParam}`;
     const invitationLabel = invitation?.title ?? code;
     try {
