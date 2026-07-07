@@ -37,6 +37,21 @@ const DEFAULT_SECTIONS: Record<SectionKey, boolean> = {
   Gallery: true, Location: true, GiftRegistry: true, RSVP: true,
 };
 
+// ── Wedding days (multi-day weddings) ─────────────────────────────────────────
+// Khmer weddings commonly run 2 days (traditional ceremony day + reception
+// day). Each day carries its own date/time and an optional venue; schedule
+// events are assigned to a day via a select in the event form.
+type WeddingDay = { date: string; time: string; venue: string };
+
+const EMPTY_DAY: WeddingDay = { date: "", time: "", venue: "" };
+
+// "Aug 10, 2026" — used in the wedding-day select of the schedule event form.
+function formatDayOption(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
+
 // ── Accordion ─────────────────────────────────────────────────────────────────
 function Accordion({
   title,
@@ -145,8 +160,11 @@ export default function InvitationEditPage() {
   const [bridePhoto, setBridePhoto] = useState("");
 
   // ── Wedding-level state ───────────────────────────────────────────────────
-  const [weddingDate, setWeddingDate] = useState("");
-  const [weddingTime, setWeddingTime] = useState("");
+  // Cambodian weddings usually span multiple days (e.g. traditional ceremony +
+  // reception). The full list lives in invitation settings (wedding_days); the
+  // first day is mirrored to the wedding's own date/time fields so countdowns
+  // and dashboards keep a single anchor date.
+  const [weddingDays, setWeddingDays] = useState<WeddingDay[]>([EMPTY_DAY]);
   const [ceremonyVenue, setCeremonyVenue] = useState("");
   const [receptionVenue, setReceptionVenue] = useState("");
   const [mapsLink, setMapsLink] = useState("");
@@ -161,7 +179,8 @@ export default function InvitationEditPage() {
   const [showEventForm, setShowEventForm] = useState(false);
   const [evtCategory, setEvtCategory] = useState("ceremony");
   const [evtTitle, setEvtTitle] = useState("");
-  const [evtStartsAt, setEvtStartsAt] = useState("");
+  const [evtDayIdx, setEvtDayIdx] = useState("0");
+  const [evtTime, setEvtTime] = useState("");
   const [evtLocation, setEvtLocation] = useState("");
   const [evtMapsLink, setEvtMapsLink] = useState("");
   const [evtIsPublic, setEvtIsPublic] = useState(true);
@@ -216,13 +235,35 @@ export default function InvitationEditPage() {
 
   useEffect(() => {
     if (!wedding) return;
-    setWeddingDate(wedding.wedding_date ?? "");
-    setWeddingTime(wedding.wedding_time?.slice(0, 5) ?? "");
     setCeremonyVenue(wedding.ceremony_venue ?? "");
     setReceptionVenue(wedding.reception_venue ?? "");
     setMapsLink(wedding.google_map_link ?? "");
     setStoryDescription(wedding.story_description ?? "");
   }, [wedding]);
+
+  // Wedding days need both records: the saved list lives in invitation
+  // settings, but a wedding created before multi-day support only has the
+  // single wedding_date/time — fall back to that as day 1.
+  useEffect(() => {
+    if (!invitation || !wedding) return;
+    const s = (invitation.settings ?? {}) as Record<string, unknown>;
+    const saved = Array.isArray(s.wedding_days)
+      ? (s.wedding_days as Partial<WeddingDay>[]).map((d) => ({
+          date: d.date ?? "",
+          time: (d.time ?? "").slice(0, 5),
+          venue: d.venue ?? "",
+        }))
+      : [];
+    if (saved.length > 0) {
+      setWeddingDays(saved);
+    } else {
+      setWeddingDays([{
+        ...EMPTY_DAY,
+        date: wedding.wedding_date ?? "",
+        time: wedding.wedding_time?.slice(0, 5) ?? "",
+      }]);
+    }
+  }, [invitation, wedding]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // ── Save all ──────────────────────────────────────────────────────────────
@@ -230,11 +271,15 @@ export default function InvitationEditPage() {
     if (!invitation || !wedding) return;
     setSaving(true);
     setSaveState("idle");
+    // Drop day rows without a date; the first remaining day anchors the
+    // wedding's own date/time (countdown, dashboard, RSVP deadline).
+    const cleanDays = weddingDays.filter((d) => d.date);
+    const firstDay = cleanDays[0];
     try {
       await Promise.all([
         updateWedding.mutateAsync({
-          wedding_date: weddingDate || null,
-          wedding_time: weddingTime || null,
+          wedding_date: firstDay?.date || null,
+          wedding_time: firstDay?.time || null,
           ceremony_venue: ceremonyVenue || null,
           reception_venue: receptionVenue || null,
           google_map_link: mapsLink || null,
@@ -252,6 +297,7 @@ export default function InvitationEditPage() {
               sections,
               invitation_text_kh: textKh,
               invitation_text_en: textEn,
+              wedding_days: cleanDays,
               gallery_urls: gallery.filter(Boolean),
               bank_account: {
                 bank: bankName,
@@ -311,20 +357,40 @@ export default function InvitationEditPage() {
   // Timeline event helpers
   const handleAddEvent = async () => {
     if (!evtTitle.trim()) return;
+    // The event is pinned to a wedding day; its date comes from that day and
+    // only the time is entered here (local wall-clock → UTC, same as before).
+    const day = weddingDays[Number(evtDayIdx)];
+    const startsAt = day?.date
+      ? new Date(`${day.date}T${evtTime || "00:00"}`).toISOString()
+      : null;
     await createTimelineEvent.mutateAsync({
       category: evtCategory,
       title: evtTitle.trim(),
-      starts_at: evtStartsAt ? new Date(evtStartsAt).toISOString() : null,
+      starts_at: startsAt,
       location: evtLocation || null,
       google_map_link: evtMapsLink || null,
       is_public: evtIsPublic,
     });
     setEvtTitle("");
-    setEvtStartsAt("");
+    setEvtTime("");
     setEvtLocation("");
     setEvtMapsLink("");
     setEvtIsPublic(true);
     setShowEventForm(false);
+  };
+
+  // Wedding day helpers
+  const updateWeddingDay = (i: number, patch: Partial<WeddingDay>) =>
+    setWeddingDays((days) => days.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
+
+  // Which wedding day an event falls on, matched by local calendar date
+  // (starts_at is stored UTC; the editor entered it as local wall-clock time).
+  const dayNumberFor = (startsAt: string | null): number | null => {
+    if (!startsAt) return null;
+    const d = new Date(startsAt);
+    const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const idx = weddingDays.findIndex((w) => w.date === local);
+    return idx >= 0 ? idx + 1 : null;
   };
 
   // Gallery helpers
@@ -475,16 +541,61 @@ export default function InvitationEditPage() {
 
           {/* 5. Event Schedule */}
           <Accordion title="5. Event Schedule">
-            <div className="grid grid-cols-2 gap-2">
-              <FieldRow label="Wedding Date">
-                <input type="date" value={weddingDate} onChange={(e) => setWeddingDate(e.target.value)}
-                  className="w-full rounded-md border border-stone-200 bg-white p-2 text-xs outline-none focus:border-emerald-400" />
-              </FieldRow>
-              <FieldRow label="Time">
-                <input type="time" value={weddingTime} onChange={(e) => setWeddingTime(e.target.value)}
-                  className="w-full rounded-md border border-stone-200 bg-white p-2 text-xs outline-none focus:border-emerald-400" />
-              </FieldRow>
+            {/* Wedding days — Khmer weddings often span 2 days */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
+                  Wedding Days
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setWeddingDays((days) => [...days, EMPTY_DAY])}
+                  className="flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200"
+                >
+                  <Plus className="h-3 w-3" /> Add Day
+                </button>
+              </div>
+
+              {weddingDays.map((day, i) => (
+                <div key={i} className="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
+                      ថ្ងៃទី{i + 1} · Day {i + 1}
+                    </span>
+                    {weddingDays.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setWeddingDays((days) => days.filter((_, idx) => idx !== i))}
+                        className="text-stone-300 hover:text-red-500"
+                        aria-label={`Remove day ${i + 1}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <FieldRow label="Date">
+                      <input type="date" value={day.date}
+                        onChange={(e) => updateWeddingDay(i, { date: e.target.value })}
+                        className="w-full rounded-md border border-stone-200 bg-white p-2 text-xs outline-none focus:border-emerald-400" />
+                    </FieldRow>
+                    <FieldRow label="Time">
+                      <input type="time" value={day.time}
+                        onChange={(e) => updateWeddingDay(i, { time: e.target.value })}
+                        className="w-full rounded-md border border-stone-200 bg-white p-2 text-xs outline-none focus:border-emerald-400" />
+                    </FieldRow>
+                  </div>
+                  <FieldRow label="Venue (optional)">
+                    <TextInput
+                      value={day.venue}
+                      onChange={(v) => updateWeddingDay(i, { venue: v })}
+                      placeholder={i === 0 ? "Defaults to ceremony venue" : "Defaults to reception venue"}
+                    />
+                  </FieldRow>
+                </div>
+              ))}
             </div>
+
             <FieldRow label="Ceremony Venue">
               <TextInput value={ceremonyVenue} onChange={setCeremonyVenue} placeholder="Venue name" />
             </FieldRow>
@@ -521,6 +632,7 @@ export default function InvitationEditPage() {
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-stone-800">{evt.title}</p>
                       <p className="text-[10px] capitalize text-stone-400">
+                        {dayNumberFor(evt.starts_at) ? `Day ${dayNumberFor(evt.starts_at)} · ` : ""}
                         {evt.category}
                         {evt.starts_at ? ` · ${new Date(evt.starts_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
                         {evt.location ? ` · ${evt.location}` : ""}
@@ -568,10 +680,24 @@ export default function InvitationEditPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Date &amp; Time</label>
-                      <input type="datetime-local" value={evtStartsAt} onChange={(e) => setEvtStartsAt(e.target.value)}
+                      <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Time</label>
+                      <input type="time" value={evtTime} onChange={(e) => setEvtTime(e.target.value)}
                         className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
                     </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Wedding Day</label>
+                    <select
+                      value={evtDayIdx}
+                      onChange={(e) => setEvtDayIdx(e.target.value)}
+                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400"
+                    >
+                      {weddingDays.map((day, i) => (
+                        <option key={i} value={i}>
+                          ថ្ងៃទី{i + 1} · Day {i + 1}{day.date ? ` — ${formatDayOption(day.date)}` : " (no date set)"}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Title</label>
