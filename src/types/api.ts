@@ -140,6 +140,12 @@ export interface Wedding {
   cancelled_at: string | null;
   package?: Package | null;
   payment_status?: SubscriptionStatus | "unpaid";
+  /**
+   * Whether ANY paid plan is active. `payment_status` tracks the latest
+   * subscription — the in-flight upgrade while one is pending — so feature
+   * gating keys off this instead.
+   */
+  has_active_plan?: boolean;
   capabilities?: PlanCapabilities;
   created_by?: User | null;
   members?: WeddingMember[];

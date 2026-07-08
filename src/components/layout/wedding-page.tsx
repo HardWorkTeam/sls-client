@@ -35,7 +35,9 @@ export function WeddingPage({
 }) {
   const { wedding, isLoading } = useMyWedding();
 
-  const isPaid = wedding?.payment_status === "paid";
+  // Any paid subscription counts (see Wedding.has_active_plan): a Free-plan
+  // couple mid-upgrade keeps their Free features while payment is reviewed.
+  const isPaid = wedding?.has_active_plan ?? wedding?.payment_status === "paid";
   const gated = requiresPackage || requires !== undefined;
   // Plan isn't active (no package, or pending / submitted / rejected payment).
   const notActive = gated && wedding !== undefined && !isPaid;

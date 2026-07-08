@@ -99,7 +99,10 @@ export function ClientShell({ children }: { children: ReactNode }) {
   // need that module in the paid package; `requiresPackage` items need any
   // paid plan. Until then only the always-visible items (My Wedding, Plan &
   // Payment, Invitations, Settings) show.
-  const isPaid = wedding?.payment_status === "paid";
+  // `has_active_plan` (any paid subscription) rather than `payment_status`
+  // (the latest subscription): a Free-plan couple upgrading keeps their Free
+  // features while the upgrade payment awaits confirmation.
+  const isPaid = wedding?.has_active_plan ?? wedding?.payment_status === "paid";
   const capabilities = wedding?.capabilities;
   const navItems = NAV_ITEMS.filter((item) => {
     if (item.module) return Boolean(capabilities?.modules[item.module]);
