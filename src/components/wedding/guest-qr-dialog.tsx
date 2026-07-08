@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { escapeHtml, sanitizeSvg } from "@/lib/utils";
 import { guestService } from "@/services/guest-service";
 import type { Guest } from "@/types/api";
 
@@ -36,7 +37,9 @@ export function GuestQrDialog({
     guestService
       .qrSvg(weddingId, guest.id)
       .then((markup) => {
-        if (active) setSvg(markup);
+        // Sanitize once at the boundary so state never holds untrusted markup;
+        // render, print and download all consume the cleaned SVG.
+        if (active) setSvg(sanitizeSvg(markup));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -73,10 +76,11 @@ export function GuestQrDialog({
     if (!svg || !guest) return;
     const win = window.open("", "_blank", "width=420,height=520");
     if (!win) return;
+    const safeName = escapeHtml(guest.name);
     win.document.write(
-      `<html><head><title>${guest.name} — Check-in QR</title></head>
+      `<html><head><title>${safeName} — Check-in QR</title></head>
        <body style="font-family:sans-serif;text-align:center;padding:24px">
-       <h2 style="margin:0 0 4px">${guest.name}</h2>
+       <h2 style="margin:0 0 4px">${safeName}</h2>
        <p style="color:#777;margin:0 0 16px">Scan at the entrance on the wedding day</p>
        ${svg}
        </body></html>`,
@@ -101,7 +105,7 @@ export function GuestQrDialog({
           ) : (
             <div
               className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
-              // The SVG is server-generated from a trusted endpoint.
+              // SVG is server-generated and DOMPurify-sanitized on fetch.
               dangerouslySetInnerHTML={{ __html: svg }}
             />
           )}
