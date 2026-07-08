@@ -52,6 +52,7 @@ import {
   useUpdateGuestGroup,
 } from "@/hooks/use-guests";
 import { useInvitations } from "@/hooks/use-invitations";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { apiErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { guestService } from "@/services/guest-service";
@@ -119,8 +120,11 @@ export function GuestsTab({
   const [groupType, setGroupType] = useState<string>("custom");
   const [groupError, setGroupError] = useState<string | null>(null);
 
+  // Debounce the search term so typing doesn't fire a request per keystroke —
+  // the term is part of the query key, so only the settled value hits the API.
+  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, isLoading } = useGuests(weddingId, {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     guest_group_id: groupId ? Number(groupId) : undefined,
     page,
   });
