@@ -1,27 +1,22 @@
 "use client";
 
 import { Plus, Trash2, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/confirm-dialog";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
-import { PageLoader } from "@/components/ui/spinner";
 import { StatCard } from "@/components/ui/stat-card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  DataTable,
+  FormDialog,
+  FormField,
+  QueryState,
+  Toolbar,
+  type DataTableColumn,
+} from "@/components/kit";
 import {
   useCreateExpense,
   useDeleteExpense,
@@ -29,6 +24,7 @@ import {
   useExpenseSummary,
 } from "@/hooks/use-expenses";
 import { apiErrorMessage } from "@/lib/api";
+import type { Expense } from "@/types/api";
 import { formatDate, formatMoney } from "@/lib/utils";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -69,16 +65,21 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading } = useExpenses(weddingId, {
+  const expenses = useExpenses(weddingId, {
     status: status || undefined,
     page,
   });
   const { data: summary } = useExpenseSummary(weddingId);
   const createExpense = useCreateExpense(weddingId);
-  const deleteExpense = useDeleteExpense(weddingId);
+  const { mutate: removeExpense } = useDeleteExpense(weddingId);
   const confirm = useConfirm();
 
   const form = useForm<ExpenseForm>({ defaultValues: EMPTY_FORM });
+
+  const openDialog = () => {
+    setError(null);
+    setDialogOpen(true);
+  };
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
@@ -99,6 +100,76 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
     }
   });
 
+  const columns = useMemo<DataTableColumn<Expense>[]>(
+    () => [
+      {
+        key: "item",
+        header: "Item / Service",
+        className: "font-medium text-zinc-800",
+        cell: (expense) => expense.item_name,
+      },
+      {
+        key: "vendor",
+        header: "Vendor",
+        hideBelow: "md",
+        className: "text-zinc-600",
+        cell: (expense) => expense.vendor ?? "—",
+      },
+      {
+        key: "amount",
+        header: "Amount",
+        cell: (expense) => formatMoney(expense.amount),
+      },
+      {
+        key: "paid",
+        header: "Paid",
+        className: "text-zinc-600",
+        cell: (expense) => formatMoney(expense.paid_amount),
+      },
+      {
+        key: "status",
+        header: "Status",
+        cell: (expense) => (
+          <Badge variant={STATUS_VARIANT[expense.status] ?? "secondary"}>
+            {STATUS_LABELS[expense.status] ?? expense.status}
+          </Badge>
+        ),
+      },
+      {
+        key: "date",
+        header: "Date",
+        hideBelow: "sm",
+        className: "text-xs text-zinc-500",
+        cell: (expense) => (expense.spent_at ? formatDate(expense.spent_at) : "—"),
+      },
+      {
+        key: "actions",
+        header: "",
+        headClassName: "w-16",
+        cell: (expense) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Delete expense"
+            onClick={async () => {
+              if (
+                await confirm({
+                  title: "Delete this expense record?",
+                  description: "This expense entry will be permanently removed.",
+                })
+              ) {
+                removeExpense(expense.id);
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        ),
+      },
+    ],
+    [confirm, removeExpense],
+  );
+
   return (
     <div className="space-y-4">
       {summary ? (
@@ -109,11 +180,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
             value={formatMoney(summary.total_amount)}
             accent="sky"
           />
-          <StatCard
-            label="Paid"
-            value={formatMoney(summary.total_paid)}
-            accent="amber"
-          />
+          <StatCard label="Paid" value={formatMoney(summary.total_paid)} accent="amber" />
           <StatCard
             label="Outstanding"
             value={formatMoney(summary.total_outstanding)}
@@ -122,9 +189,16 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <Toolbar
+        actions={
+          <Button size="sm" onClick={openDialog}>
+            <Plus className="h-4 w-4" /> Add Expense
+          </Button>
+        }
+      >
         <Select
           className="w-44"
+          aria-label="Filter by status"
           value={status}
           onChange={(event) => {
             setStatus(event.target.value);
@@ -136,150 +210,100 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
           <option value="partial">Partially Paid</option>
           <option value="paid">Paid</option>
         </Select>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4" /> Add Expense
-        </Button>
-      </div>
+      </Toolbar>
 
-      {isLoading ? (
-        <PageLoader label="Loading expenses..." />
-      ) : !data || data.data.length === 0 ? (
-        <EmptyState
-          title="No expenses recorded"
-          description="Track vendor costs, deposits and payments against your budget."
-          action={
-            <Button onClick={() => setDialogOpen(true)}>
+      <QueryState
+        query={expenses}
+        loadingLabel="Loading expenses..."
+        empty={{
+          title: "No expenses recorded",
+          description: "Track vendor costs, deposits and payments against your budget.",
+          action: (
+            <Button onClick={openDialog}>
               <Plus className="h-4 w-4" /> Add Expense
             </Button>
-          }
-        />
-      ) : (
-        <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item / Service</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Paid</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="w-16" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.data.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell className="font-medium text-zinc-800">
-                    {expense.item_name}
-                  </TableCell>
-                  <TableCell className="text-zinc-600">
-                    {expense.vendor ?? "—"}
-                  </TableCell>
-                  <TableCell>{formatMoney(expense.amount)}</TableCell>
-                  <TableCell className="text-zinc-600">
-                    {formatMoney(expense.paid_amount)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STATUS_VARIANT[expense.status] ?? "secondary"}>
-                      {STATUS_LABELS[expense.status] ?? expense.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-zinc-500">
-                    {expense.spent_at ? formatDate(expense.spent_at) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Delete expense"
-                      onClick={async () => {
-                        if (
-                          await confirm({
-                            title: "Delete this expense record?",
-                            description:
-                              "This expense entry will be permanently removed.",
-                          })
-                        ) {
-                          deleteExpense.mutate(expense.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Pagination meta={data.meta} onPageChange={setPage} />
-        </>
-      )}
+          ),
+        }}
+      >
+        {(expensesPage) => (
+          <DataTable
+            caption="Wedding expenses"
+            columns={columns}
+            rows={expensesPage.data}
+            rowKey={(expense) => expense.id}
+            meta={expensesPage.meta}
+            onPageChange={setPage}
+            isFetching={expenses.isFetching}
+          />
+        )}
+      </QueryState>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title="Add Expense">
-        <form onSubmit={onSubmit} className="space-y-3">
-          <div>
-            <Label htmlFor="expense-item">Item / Service</Label>
+      <FormDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title="Add Expense"
+        onSubmit={onSubmit}
+        error={error}
+        pending={createExpense.isPending}
+        submitLabel="Save Expense"
+      >
+        <FormField
+          label="Item / Service"
+          required
+          error={form.formState.errors.item_name?.message}
+        >
+          {(field) => (
             <Input
-              id="expense-item"
-              {...form.register("item_name", { required: true })}
+              {...field}
+              {...form.register("item_name", { required: "Item name is required" })}
             />
-          </div>
-          <div>
-            <Label htmlFor="expense-vendor">Vendor</Label>
-            <Input id="expense-vendor" {...form.register("vendor")} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="expense-amount">Amount</Label>
+          )}
+        </FormField>
+        <FormField label="Vendor">
+          {(field) => <Input {...field} {...form.register("vendor")} />}
+        </FormField>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="Amount">
+            {(field) => (
               <Input
-                id="expense-amount"
                 type="number"
                 step="0.01"
                 min="0"
+                {...field}
                 {...form.register("amount")}
               />
-            </div>
-            <div>
-              <Label htmlFor="expense-paid">Paid amount</Label>
+            )}
+          </FormField>
+          <FormField label="Paid amount">
+            {(field) => (
               <Input
-                id="expense-paid"
                 type="number"
                 step="0.01"
                 min="0"
+                {...field}
                 {...form.register("paid_amount")}
               />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="expense-status">Status</Label>
-              <Select id="expense-status" {...form.register("status")}>
+            )}
+          </FormField>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <FormField label="Status">
+            {(field) => (
+              <Select {...field} {...form.register("status")}>
                 <option value="planned">Planned</option>
                 <option value="partial">Partially Paid</option>
                 <option value="paid">Paid</option>
               </Select>
-            </div>
-            <div>
-              <Label htmlFor="expense-date">Date</Label>
-              <Input id="expense-date" type="date" {...form.register("spent_at")} />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="expense-note">Note</Label>
-            <Input id="expense-note" {...form.register("note")} />
-          </div>
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createExpense.isPending}>
-              Save Expense
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+            )}
+          </FormField>
+          <FormField label="Date">
+            {(field) => <Input type="date" {...field} {...form.register("spent_at")} />}
+          </FormField>
+        </div>
+        <FormField label="Note">
+          {(field) => <Input {...field} {...form.register("note")} />}
+        </FormField>
+      </FormDialog>
     </div>
   );
 }
