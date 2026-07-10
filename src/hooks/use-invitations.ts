@@ -38,8 +38,21 @@ export function useUpdateInvitation(weddingId: number) {
       invitationId: number;
       payload: InvitationPayload & { status?: string };
     }) => invitationService.update(weddingId, invitationId, payload),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: invitationKeys.all(weddingId) }),
+    onSuccess: (updatedInvitation) => {
+      // Write the server's response into the cache immediately so consumers
+      // see the correct saved data right away — no waiting for the background
+      // refetch to complete.
+      queryClient.setQueryData(
+        invitationKeys.all(weddingId),
+        (old: import("@/types/api").Invitation[] | undefined) =>
+          old?.map((inv) =>
+            inv.id === updatedInvitation.id ? updatedInvitation : inv,
+          ) ?? [updatedInvitation],
+      );
+      // Still invalidate so a background refetch eventually brings in any
+      // server-side changes (published_at, etc.).
+      queryClient.invalidateQueries({ queryKey: invitationKeys.all(weddingId) });
+    },
   });
 }
 

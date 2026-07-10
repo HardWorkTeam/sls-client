@@ -24,6 +24,7 @@ import {
   useTimeline,
 } from "@/hooks/use-timeline";
 import { useUpdateWedding } from "@/hooks/use-weddings";
+import { apiErrorMessage } from "@/lib/api";
 
 // ── Section keys ─────────────────────────────────────────────────────────────
 const SECTION_KEYS = [
@@ -174,6 +175,7 @@ export default function InvitationEditPage() {
   const [previewKey, setPreviewKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState<string>("");
 
   // Inline schedule event form
   const [showEventForm, setShowEventForm] = useState(false);
@@ -292,11 +294,15 @@ export default function InvitationEditPage() {
     if (!invitation || !wedding) return;
     setSaving(true);
     setSaveState("idle");
+    setSaveError("");
     // Drop day rows without a date; the first remaining day anchors the
     // wedding's own date/time (countdown, dashboard, RSVP deadline).
     const cleanDays = weddingDays.filter((d) => d.date);
     const firstDay = cleanDays[0];
     try {
+      // Snapshot the current settings from cache before the save so the
+      // spread picks up any previously persisted keys we don't track locally.
+      const currentSettings = (invitation.settings as Record<string, unknown>) ?? {};
       await Promise.all([
         updateWedding.mutateAsync({
           wedding_date: firstDay?.date || null,
@@ -314,7 +320,7 @@ export default function InvitationEditPage() {
             title: title || null,
             cover_image_path: coverImagePath || null,
             settings: {
-              ...((invitation.settings as Record<string, unknown>) ?? {}),
+              ...currentSettings,
               sections,
               invitation_text_kh: textKh,
               invitation_text_en: textEn,
@@ -353,8 +359,12 @@ export default function InvitationEditPage() {
       setSaveState("saved");
       setPreviewKey((k) => k + 1);
       setTimeout(() => setSaveState("idle"), 2500);
-    } catch {
+    } catch (err) {
+      const msg = apiErrorMessage(err);
+      setSaveError(msg);
       setSaveState("error");
+      // Log so the developer can see the full error in the browser console.
+      console.error("[InvitationEditor] Save failed:", err);
     } finally {
       setSaving(false);
     }
@@ -817,7 +827,12 @@ export default function InvitationEditPage() {
         {/* Sticky save button */}
         <div className="sticky bottom-0 border-t border-stone-200 bg-white p-4">
           {saveState === "error" && (
-            <p className="mb-2 text-xs text-red-600">Failed to save — please try again.</p>
+            <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-xs font-semibold text-red-700">Save failed</p>
+              {saveError && (
+                <p className="mt-0.5 text-xs text-red-600">{saveError}</p>
+              )}
+            </div>
           )}
           <Button onClick={handleSave} disabled={saving} className="w-full">
             <Save className="h-4 w-4" />
