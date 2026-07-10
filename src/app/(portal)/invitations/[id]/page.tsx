@@ -3,7 +3,7 @@
 import { ArrowLeft, Eye, Plus, RefreshCw, Save, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -186,14 +186,24 @@ export default function InvitationEditPage() {
   const [evtIsPublic, setEvtIsPublic] = useState(true);
 
   // ── Initialise from API data ──────────────────────────────────────────────
-  // These effects seed editable form state from async-loaded data. setState in
-  // an effect is the correct tool for "hydrate editable fields once the record
-  // arrives" — the values become user-editable afterwards, so they can't be
-  // derived during render. The key-based remount alternative isn't worth the
-  // churn here, so the React Compiler rule is scoped-off for these two effects.
+  // These effects seed editable form state from async-loaded data the first
+  // time a given invitation/wedding record arrives. We intentionally skip
+  // re-initialization on subsequent refetches (e.g. after Save invalidates the
+  // query) to prevent React Query's background refetch from overwriting the
+  // user's in-flight edits with stale or even up-to-date-but-re-rendered data.
+  //
+  // initInvitationRef tracks the invitation id that has already been seeded.
+  // When the page navigates to a different invitation (id changes) the ref is
+  // cleared so the new record is correctly hydrated.
+  const initInvitationRef = useRef<number | null>(null);
+  const initWeddingRef = useRef<number | null>(null);
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!invitation) return;
+    // Already seeded this invitation — skip to avoid overwriting edits.
+    if (initInvitationRef.current === invitation.id) return;
+    initInvitationRef.current = invitation.id;
+
     setTemplateId(invitation.invitation_template_id ? String(invitation.invitation_template_id) : "");
     setTitle(invitation.title ?? "");
     setCoverImagePath(invitation.cover_image_path ?? "");
@@ -235,6 +245,10 @@ export default function InvitationEditPage() {
 
   useEffect(() => {
     if (!wedding) return;
+    // Already seeded this wedding — skip to avoid overwriting edits.
+    if (initWeddingRef.current === wedding.id) return;
+    initWeddingRef.current = wedding.id;
+
     setCeremonyVenue(wedding.ceremony_venue ?? "");
     setReceptionVenue(wedding.reception_venue ?? "");
     setMapsLink(wedding.google_map_link ?? "");
@@ -244,8 +258,15 @@ export default function InvitationEditPage() {
   // Wedding days need both records: the saved list lives in invitation
   // settings, but a wedding created before multi-day support only has the
   // single wedding_date/time — fall back to that as day 1.
+  // This effect shares the invitation init guard — wedding days are part of
+  // invitation settings and are seeded together with the first invitation load.
+  const initWeddingDaysRef = useRef<number | null>(null);
   useEffect(() => {
     if (!invitation || !wedding) return;
+    // Skip if we've already seeded wedding days for this invitation.
+    if (initWeddingDaysRef.current === invitation.id) return;
+    initWeddingDaysRef.current = invitation.id;
+
     const s = (invitation.settings ?? {}) as Record<string, unknown>;
     const saved = Array.isArray(s.wedding_days)
       ? (s.wedding_days as Partial<WeddingDay>[]).map((d) => ({
