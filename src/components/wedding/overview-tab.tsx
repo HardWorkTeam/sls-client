@@ -210,8 +210,8 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
       )}
 
       {giftSummary || expenseSummary ? (() => {
-        const income = giftSummary?.total_cash_amount ?? 0;
-        const expenses = expenseSummary?.total_amount ?? 0;
+        const income = giftSummary?.total_cash_amount_usd ?? 0;
+        const expenses = expenseSummary?.total_amount_usd ?? 0;
         const net = income - expenses;
         return (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

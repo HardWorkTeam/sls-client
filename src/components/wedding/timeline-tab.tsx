@@ -11,20 +11,36 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FormDialog, FormField, QueryState, Toolbar } from "@/components/kit";
+import { useInvitations } from "@/hooks/use-invitations";
 import {
   useCreateTimelineEvent,
   useDeleteTimelineEvent,
   useTimeline,
   useUpdateTimelineEvent,
 } from "@/hooks/use-timeline";
+import { useWedding } from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { TimelineEvent } from "@/types/api";
 
-function toLocalInput(utcIso: string): string {
-  const d = new Date(utcIso);
-  const offset = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+type WeddingDay = { date: string; time: string; venue: string };
+const EMPTY_DAY: WeddingDay = { date: "", time: "", venue: "" };
+
+function formatDayOption(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getDayAndTime(startsAt: string | null, days: WeddingDay[]) {
+  if (!startsAt) return { dayIdx: "0", time: "" };
+  const d = new Date(startsAt);
+  const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const localTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const idx = days.findIndex((w) => w.date === localDate);
+  return { dayIdx: String(idx >= 0 ? idx : 0), time: localTime };
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -39,12 +55,15 @@ interface TimelineForm {
   category: string;
   title: string;
   description: string;
-  starts_at: string;
+  dayIdx: string;
+  time: string;
   location: string;
   is_public: boolean;
 }
 
 export function TimelineTab({ weddingId }: { weddingId: number }) {
+  const { data: wedding } = useWedding(weddingId);
+  const { data: invitations } = useInvitations(weddingId);
   const timeline = useTimeline(weddingId);
   const createEvent = useCreateTimelineEvent(weddingId);
   const updateEvent = useUpdateTimelineEvent(weddingId);
@@ -57,6 +76,29 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
 
   const form = useForm<TimelineForm>();
 
+  const weddingDays: WeddingDay[] = (() => {
+    if (!wedding) return [EMPTY_DAY];
+    const invitation = invitations?.[0];
+    if (invitation) {
+      const s = (invitation.settings ?? {}) as Record<string, unknown>;
+      const saved = Array.isArray(s.wedding_days)
+        ? (s.wedding_days as Partial<WeddingDay>[]).map((d) => ({
+            date: d.date ?? "",
+            time: (d.time ?? "").slice(0, 5),
+            venue: d.venue ?? "",
+          }))
+        : [];
+      if (saved.length > 0) return saved;
+    }
+    return [
+      {
+        ...EMPTY_DAY,
+        date: wedding.wedding_date ?? "",
+        time: wedding.wedding_time?.slice(0, 5) ?? "",
+      },
+    ];
+  })();
+
   const openCreate = () => {
     setEditing(null);
     setError(null);
@@ -64,7 +106,8 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
       category: "ceremony",
       title: "",
       description: "",
-      starts_at: "",
+      dayIdx: "0",
+      time: "",
       location: "",
       is_public: true,
     });
@@ -74,11 +117,13 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
   const openEdit = (event: TimelineEvent) => {
     setEditing(event);
     setError(null);
+    const { dayIdx, time } = getDayAndTime(event.starts_at, weddingDays);
     form.reset({
       category: event.category,
       title: event.title,
       description: event.description ?? "",
-      starts_at: event.starts_at ? toLocalInput(event.starts_at) : "",
+      dayIdx,
+      time,
       location: event.location ?? "",
       is_public: event.is_public,
     });
@@ -87,9 +132,16 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
+    const day = weddingDays[Number(values.dayIdx)];
+    const startsAt = day?.date
+      ? new Date(`${day.date}T${values.time || "00:00"}`).toISOString()
+      : null;
+      
     const payload = {
-      ...values,
-      starts_at: values.starts_at ? new Date(values.starts_at).toISOString() : null,
+      category: values.category,
+      title: values.title,
+      is_public: values.is_public,
+      starts_at: startsAt,
       description: values.description || null,
       location: values.location || null,
     };
@@ -147,6 +199,13 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
                         <span className="inline-flex items-center gap-1">
                           <CalendarClock className="h-3.5 w-3.5" />
                           {formatDateTime(event.starts_at)}
+                          {(() => {
+                            if (!event.starts_at) return null;
+                            const d = new Date(event.starts_at);
+                            const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                            const idx = weddingDays.findIndex((w) => w.date === local);
+                            return idx >= 0 ? ` (Day ${idx + 1})` : null;
+                          })()}
                         </span>
                         {event.location ? (
                           <span className="inline-flex items-center gap-1">
@@ -204,7 +263,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
         pending={createEvent.isPending || updateEvent.isPending}
         submitLabel={editing ? "Save Changes" : "Add Event"}
       >
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <FormField label="Category">
             {(field) => (
               <Select {...field} {...form.register("category")}>
@@ -216,9 +275,20 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
               </Select>
             )}
           </FormField>
-          <FormField label="Date & time">
+          <FormField label="Wedding Day">
             {(field) => (
-              <Input type="datetime-local" {...field} {...form.register("starts_at")} />
+              <Select {...field} {...form.register("dayIdx")}>
+                {weddingDays.map((day, i) => (
+                  <option key={i} value={i}>
+                    Day {i + 1}{day.date ? ` — ${formatDayOption(day.date)}` : " (no date set)"}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </FormField>
+          <FormField label="Time">
+            {(field) => (
+              <Input type="time" {...field} {...form.register("time")} />
             )}
           </FormField>
         </div>
