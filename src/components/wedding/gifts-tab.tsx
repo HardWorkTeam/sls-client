@@ -288,7 +288,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           </FormField>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Type">
             {(field) => (
               <Select {...field} {...form.register("gift_type")}>

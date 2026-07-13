@@ -32,7 +32,7 @@ export function StatCard({
         ) : null}
         <div className="min-w-0">
           <p className="truncate text-sm text-zinc-500">{label}</p>
-          <p className="text-2xl font-semibold text-zinc-900">{value}</p>
+          <p className="truncate text-xl lg:text-2xl font-semibold text-zinc-900" title={String(value)}>{value}</p>
           {hint ? <p className="text-xs text-zinc-400">{hint}</p> : null}
         </div>
       </CardContent>

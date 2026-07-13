@@ -298,7 +298,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
         <FormField label="Vendor">
           {(field) => <Input {...field} {...form.register("vendor")} />}
         </FormField>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Amount">
             {(field) => (
               <Input
@@ -322,7 +322,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
             )}
           </FormField>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Status">
             {(field) => (
               <Select {...field} {...form.register("status")}>
