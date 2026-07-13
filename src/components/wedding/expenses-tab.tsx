@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, Wallet } from "lucide-react";
+import { Plus, Trash2, Wallet, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import {
   useDeleteExpense,
   useExpenses,
   useExpenseSummary,
+  useUpdateExpense,
 } from "@/hooks/use-expenses";
 import { apiErrorMessage } from "@/lib/api";
 import type { Expense } from "@/types/api";
@@ -63,6 +64,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const expenses = useExpenses(weddingId, {
@@ -71,6 +73,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
   });
   const { data: summary } = useExpenseSummary(weddingId);
   const createExpense = useCreateExpense(weddingId);
+  const updateExpense = useUpdateExpense(weddingId);
   const { mutate: removeExpense } = useDeleteExpense(weddingId);
   const confirm = useConfirm();
 
@@ -78,13 +81,30 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
 
   const openDialog = () => {
     setError(null);
+    setEditingExpense(null);
+    form.reset(EMPTY_FORM);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (expense: Expense) => {
+    setError(null);
+    setEditingExpense(expense);
+    form.reset({
+      item_name: expense.item_name,
+      vendor: expense.vendor ?? "",
+      amount: String(expense.amount),
+      paid_amount: expense.paid_amount ? String(expense.paid_amount) : "",
+      status: expense.status,
+      spent_at: expense.spent_at ? expense.spent_at.split("T")[0] : "",
+      note: expense.note ?? "",
+    });
     setDialogOpen(true);
   };
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
     try {
-      await createExpense.mutateAsync({
+      const payload = {
         item_name: values.item_name,
         vendor: values.vendor || null,
         amount: values.amount ? Number(values.amount) : 0,
@@ -92,7 +112,13 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
         status: values.status,
         spent_at: values.spent_at || null,
         note: values.note || null,
-      });
+      };
+
+      if (editingExpense) {
+        await updateExpense.mutateAsync({ expenseId: editingExpense.id, payload });
+      } else {
+        await createExpense.mutateAsync(payload);
+      }
       form.reset(EMPTY_FORM);
       setDialogOpen(false);
     } catch (err) {
@@ -145,25 +171,35 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
       {
         key: "actions",
         header: "",
-        headClassName: "w-16",
+        headClassName: "w-24",
         cell: (expense) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Delete expense"
-            onClick={async () => {
-              if (
-                await confirm({
-                  title: "Delete this expense record?",
-                  description: "This expense entry will be permanently removed.",
-                })
-              ) {
-                removeExpense(expense.id);
-              }
-            }}
-          >
-            <Trash2 className="h-4 w-4 text-red-500" />
-          </Button>
+          <div className="flex gap-1 justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Edit expense"
+              onClick={() => openEditDialog(expense)}
+            >
+              <Pencil className="h-4 w-4 text-zinc-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Delete expense"
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: "Delete this expense record?",
+                    description: "This expense entry will be permanently removed.",
+                  })
+                ) {
+                  removeExpense(expense.id);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </Button>
+          </div>
         ),
       },
     ],
@@ -241,11 +277,11 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
       <FormDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title="Add Expense"
+        title={editingExpense ? "Edit Expense" : "Add Expense"}
         onSubmit={onSubmit}
         error={error}
-        pending={createExpense.isPending}
-        submitLabel="Save Expense"
+        pending={createExpense.isPending || updateExpense.isPending}
+        submitLabel={editingExpense ? "Save Changes" : "Save Expense"}
       >
         <FormField
           label="Item / Service"
