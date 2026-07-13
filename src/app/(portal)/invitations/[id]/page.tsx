@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Eye, Plus, RefreshCw, Save, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Eye, Pencil, Plus, RefreshCw, Save, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -23,6 +23,7 @@ import {
   useCreateTimelineEvent,
   useDeleteTimelineEvent,
   useTimeline,
+  useUpdateTimelineEvent,
 } from "@/hooks/use-timeline";
 import { useUpdateWedding } from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
@@ -123,6 +124,7 @@ export default function InvitationEditPage() {
   const unpublishInvitation = useUnpublishInvitation(wedding?.id ?? 0);
   const { data: timelineEvents } = useTimeline(wedding?.id ?? 0);
   const createTimelineEvent = useCreateTimelineEvent(wedding?.id ?? 0);
+  const updateTimelineEvent = useUpdateTimelineEvent(wedding?.id ?? 0);
   const deleteTimelineEvent = useDeleteTimelineEvent(wedding?.id ?? 0);
   const confirm = useConfirm();
 
@@ -181,6 +183,7 @@ export default function InvitationEditPage() {
 
   // Inline schedule event form
   const [showEventForm, setShowEventForm] = useState(false);
+  const [evtId, setEvtId] = useState<number | null>(null);
   const [evtCategory, setEvtCategory] = useState("ceremony");
   const [evtTitle, setEvtTitle] = useState("");
   const [evtDayIdx, setEvtDayIdx] = useState("0");
@@ -388,7 +391,7 @@ export default function InvitationEditPage() {
   const isPublished = invitation.status === "published";
 
   // Timeline event helpers
-  const handleAddEvent = async () => {
+  const handleSaveEvent = async () => {
     if (!evtTitle.trim()) return;
     // The event is pinned to a wedding day; its date comes from that day and
     // only the time is entered here (local wall-clock → UTC, same as before).
@@ -396,20 +399,59 @@ export default function InvitationEditPage() {
     const startsAt = day?.date
       ? new Date(`${day.date}T${evtTime || "00:00"}`).toISOString()
       : null;
-    await createTimelineEvent.mutateAsync({
+    const payload = {
       category: evtCategory,
       title: evtTitle.trim(),
       starts_at: startsAt,
       location: evtLocation || null,
       google_map_link: evtMapsLink || null,
       is_public: evtIsPublic,
-    });
+    };
+    if (evtId) {
+      await updateTimelineEvent.mutateAsync({ eventId: evtId, payload });
+    } else {
+      await createTimelineEvent.mutateAsync(payload);
+    }
+    
+    setEvtId(null);
     setEvtTitle("");
     setEvtTime("");
     setEvtLocation("");
     setEvtMapsLink("");
     setEvtIsPublic(true);
     setShowEventForm(false);
+  };
+
+  const openEventForm = (evt?: any) => {
+    if (evt) {
+      setEvtId(evt.id);
+      setEvtCategory(evt.category);
+      setEvtTitle(evt.title);
+      setEvtLocation(evt.location || "");
+      setEvtMapsLink(evt.google_map_link || "");
+      setEvtIsPublic(evt.is_public);
+      if (evt.starts_at) {
+        const d = new Date(evt.starts_at);
+        const local = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const localTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        const idx = weddingDays.findIndex((w) => w.date === local);
+        setEvtDayIdx(String(idx >= 0 ? idx : 0));
+        setEvtTime(localTime);
+      } else {
+        setEvtDayIdx("0");
+        setEvtTime("");
+      }
+    } else {
+      setEvtId(null);
+      setEvtCategory("ceremony");
+      setEvtTitle("");
+      setEvtDayIdx("0");
+      setEvtTime("");
+      setEvtLocation("");
+      setEvtMapsLink("");
+      setEvtIsPublic(true);
+    }
+    setShowEventForm(true);
   };
 
   // Wedding day helpers
@@ -654,7 +696,13 @@ export default function InvitationEditPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setShowEventForm((v) => !v)}
+                  onClick={() => {
+                    if (showEventForm) {
+                      setShowEventForm(false);
+                    } else {
+                      openEventForm();
+                    }
+                  }}
                   className="flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200"
                 >
                   <Plus className="h-3 w-3" /> Add Schedule
@@ -684,23 +732,33 @@ export default function InvitationEditPage() {
                         </a>
                       ) : null}
                     </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (
-                          await confirm({
-                            title: `Delete "${evt.title}"?`,
-                            description:
-                              "This timeline event will be permanently removed.",
-                          })
-                        ) {
-                          deleteTimelineEvent.mutate(evt.id);
-                        }
-                      }}
-                      className="ml-2 shrink-0 text-stone-300 hover:text-red-500"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="ml-2 flex shrink-0 items-center">
+                      <button
+                        type="button"
+                        onClick={() => openEventForm(evt)}
+                        className="p-1 text-stone-300 hover:text-stone-600"
+                        aria-label="Edit"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: `Delete "${evt.title}"?`,
+                              description:
+                                "This timeline event will be permanently removed.",
+                            })
+                          ) {
+                            deleteTimelineEvent.mutate(evt.id);
+                          }
+                        }}
+                        className="p-1 text-stone-300 hover:text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -770,10 +828,10 @@ export default function InvitationEditPage() {
                       className="rounded-md bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-200">
                       Cancel
                     </button>
-                    <button type="button" onClick={handleAddEvent}
-                      disabled={createTimelineEvent.isPending || !evtTitle.trim()}
+                    <button type="button" onClick={handleSaveEvent}
+                      disabled={createTimelineEvent.isPending || updateTimelineEvent.isPending || !evtTitle.trim()}
                       className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
-                      {createTimelineEvent.isPending ? "Saving…" : "Save Event"}
+                      {createTimelineEvent.isPending || updateTimelineEvent.isPending ? "Saving…" : "Save Event"}
                     </button>
                   </div>
                 </div>
