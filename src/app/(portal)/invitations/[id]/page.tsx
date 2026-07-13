@@ -15,6 +15,7 @@ import { useTemplates } from "@/hooks/use-admin";
 import {
   useInvitations,
   usePublishInvitation,
+  useUnpublishInvitation,
   useUpdateInvitation,
 } from "@/hooks/use-invitations";
 import { useMyWedding } from "@/hooks/use-my-wedding";
@@ -119,6 +120,7 @@ export default function InvitationEditPage() {
   const updateInvitation = useUpdateInvitation(wedding?.id ?? 0);
   const updateWedding = useUpdateWedding(wedding?.id ?? 0);
   const publishInvitation = usePublishInvitation(wedding?.id ?? 0);
+  const unpublishInvitation = useUnpublishInvitation(wedding?.id ?? 0);
   const { data: timelineEvents } = useTimeline(wedding?.id ?? 0);
   const createTimelineEvent = useCreateTimelineEvent(wedding?.id ?? 0);
   const deleteTimelineEvent = useDeleteTimelineEvent(wedding?.id ?? 0);
@@ -450,11 +452,18 @@ export default function InvitationEditPage() {
             </div>
             <div className="flex shrink-0 gap-2">
               {isPublished ? (
-                <a href={invitation.public_url} target="_blank" rel="noreferrer">
-                  <Button size="sm" variant="outline">
-                    <Eye className="h-3.5 w-3.5" /> View Live
+                <>
+                  <a href={invitation.public_url} target="_blank" rel="noreferrer">
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-3.5 w-3.5" /> View Live
+                    </Button>
+                  </a>
+                  <Button size="sm" variant="secondary"
+                    disabled={unpublishInvitation.isPending}
+                    onClick={() => unpublishInvitation.mutate(invitation.id)}>
+                    {unpublishInvitation.isPending ? "Unpublishing…" : "Unpublish"}
                   </Button>
-                </a>
+                </>
               ) : (
                 <Button size="sm" variant="secondary"
                   disabled={publishInvitation.isPending}

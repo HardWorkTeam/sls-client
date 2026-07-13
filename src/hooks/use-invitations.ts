@@ -66,6 +66,16 @@ export function usePublishInvitation(weddingId: number) {
   });
 }
 
+export function useUnpublishInvitation(weddingId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (invitationId: number) =>
+      invitationService.unpublish(weddingId, invitationId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: invitationKeys.all(weddingId) }),
+  });
+}
+
 export function useDeleteInvitation(weddingId: number) {
   const queryClient = useQueryClient();
   return useMutation({

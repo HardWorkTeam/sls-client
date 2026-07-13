@@ -47,6 +47,13 @@ export const invitationService = {
     return data.data;
   },
 
+  async unpublish(weddingId: number, invitationId: number): Promise<Invitation> {
+    const { data } = await api.post<{ data: Invitation }>(
+      `/weddings/${weddingId}/invitations/${invitationId}/unpublish`,
+    );
+    return data.data;
+  },
+
   qrUrl(weddingId: number, invitationId: number): string {
     return `${API_URL}/weddings/${weddingId}/invitations/${invitationId}/qr`;
   },
