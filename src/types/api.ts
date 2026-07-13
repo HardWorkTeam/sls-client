@@ -265,6 +265,7 @@ export interface Gift {
   guest_id: number | null;
   gift_type: GiftType;
   amount: number | null;
+  currency: string;
   item_name: string | null;
   note: string | null;
   received_at: string | null;
@@ -273,8 +274,9 @@ export interface Gift {
 
 export interface GiftSummary {
   total_gifts: number;
-  total_cash_amount: number;
-  by_type: Record<GiftType, { count: number; amount: number }>;
+  total_cash_amount_usd: number;
+  total_cash_amount_khr: number;
+  by_type: Record<GiftType, { count: number; amount_usd: number; amount_khr: number }>;
 }
 
 export type ExpenseStatus = "planned" | "partial" | "paid";
@@ -285,6 +287,7 @@ export interface Expense {
   item_name: string;
   vendor: string | null;
   amount: number;
+  currency: string;
   paid_amount: number;
   status: ExpenseStatus;
   note: string | null;
@@ -293,10 +296,13 @@ export interface Expense {
 
 export interface ExpenseSummary {
   total_expenses: number;
-  total_amount: number;
-  total_paid: number;
-  total_outstanding: number;
-  by_status: Record<ExpenseStatus, { count: number; amount: number }>;
+  total_amount_usd: number;
+  total_paid_usd: number;
+  total_outstanding_usd: number;
+  total_amount_khr: number;
+  total_paid_khr: number;
+  total_outstanding_khr: number;
+  by_status: Record<ExpenseStatus, { count: number; amount_usd: number; amount_khr: number }>;
 }
 
 export type TimelineCategory =

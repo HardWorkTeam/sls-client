@@ -5,6 +5,7 @@ export interface GiftPayload {
   guest_id?: number | null;
   gift_type?: string;
   amount?: number | null;
+  currency?: string;
   item_name?: string | null;
   note?: string | null;
   received_at?: string | null;

@@ -38,6 +38,7 @@ interface GiftForm {
   guest_id: string;
   gift_type: string;
   amount: string;
+  currency: string;
   item_name: string;
   note: string;
   new_guest_name: string;
@@ -47,6 +48,7 @@ const EMPTY_FORM: GiftForm = {
   guest_id: "",
   gift_type: "cash",
   amount: "",
+  currency: "USD",
   item_name: "",
   note: "",
   new_guest_name: "",
@@ -101,6 +103,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         guest_id: resolvedGuestId,
         gift_type: values.gift_type,
         amount: values.amount ? Number(values.amount) : null,
+        currency: values.currency,
         item_name: values.item_name || null,
         note: values.note || null,
       });
@@ -133,7 +136,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         cell: (gift) =>
           gift.gift_type === "item"
             ? (gift.item_name ?? "—")
-            : formatMoney(gift.amount),
+            : formatMoney(gift.amount, gift.currency),
       },
       {
         key: "note",
@@ -184,7 +187,14 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           <StatCard label="Total Gifts" value={summary.total_gifts} icon={GiftIcon} />
           <StatCard
             label="Total Cash"
-            value={formatMoney(summary.total_cash_amount)}
+            value={
+              [
+                summary.total_cash_amount_usd > 0 ? formatMoney(summary.total_cash_amount_usd, "USD") : null,
+                summary.total_cash_amount_khr > 0 ? formatMoney(summary.total_cash_amount_khr, "KHR") : null,
+              ]
+                .filter(Boolean)
+                .join(" | ") || "US$0.00"
+            }
             accent="sky"
           />
           <StatCard
@@ -303,17 +313,27 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
               {(field) => <Input {...field} {...form.register("item_name")} />}
             </FormField>
           ) : (
-            <FormField label="Amount">
-              {(field) => (
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...field}
-                  {...form.register("amount")}
-                />
-              )}
-            </FormField>
+            <div className="grid grid-cols-[1fr_80px] gap-2">
+              <FormField label="Amount">
+                {(field) => (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...field}
+                    {...form.register("amount")}
+                  />
+                )}
+              </FormField>
+              <FormField label="Cur.">
+                {(field) => (
+                  <Select {...field} {...form.register("currency")}>
+                    <option value="USD">USD</option>
+                    <option value="KHR">KHR</option>
+                  </Select>
+                )}
+              </FormField>
+            </div>
           )}
         </div>
         <FormField label="Note">

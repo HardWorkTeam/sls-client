@@ -5,6 +5,7 @@ export interface ExpensePayload {
   item_name?: string;
   vendor?: string | null;
   amount?: number;
+  currency?: string;
   paid_amount?: number | null;
   status?: string;
   note?: string | null;

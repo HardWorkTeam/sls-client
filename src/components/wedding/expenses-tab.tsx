@@ -44,6 +44,7 @@ interface ExpenseForm {
   item_name: string;
   vendor: string;
   amount: string;
+  currency: string;
   paid_amount: string;
   status: string;
   spent_at: string;
@@ -54,6 +55,7 @@ const EMPTY_FORM: ExpenseForm = {
   item_name: "",
   vendor: "",
   amount: "",
+  currency: "USD",
   paid_amount: "",
   status: "planned",
   spent_at: "",
@@ -93,6 +95,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
       item_name: expense.item_name,
       vendor: expense.vendor ?? "",
       amount: String(expense.amount),
+      currency: expense.currency || "USD",
       paid_amount: expense.paid_amount ? String(expense.paid_amount) : "",
       status: expense.status,
       spent_at: expense.spent_at ? expense.spent_at.split("T")[0] : "",
@@ -108,6 +111,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
         item_name: values.item_name,
         vendor: values.vendor || null,
         amount: values.amount ? Number(values.amount) : 0,
+        currency: values.currency,
         paid_amount: values.paid_amount ? Number(values.paid_amount) : 0,
         status: values.status,
         spent_at: values.spent_at || null,
@@ -144,13 +148,13 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
       {
         key: "amount",
         header: "Amount",
-        cell: (expense) => formatMoney(expense.amount),
+        cell: (expense) => formatMoney(expense.amount, expense.currency),
       },
       {
         key: "paid",
         header: "Paid",
         className: "text-zinc-600",
-        cell: (expense) => formatMoney(expense.paid_amount),
+        cell: (expense) => formatMoney(expense.paid_amount, expense.currency),
       },
       {
         key: "status",
@@ -213,13 +217,38 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
           <StatCard label="Total Items" value={summary.total_expenses} icon={Wallet} />
           <StatCard
             label="Total Budget"
-            value={formatMoney(summary.total_amount)}
+            value={
+              [
+                summary.total_amount_usd > 0 ? formatMoney(summary.total_amount_usd, "USD") : null,
+                summary.total_amount_khr > 0 ? formatMoney(summary.total_amount_khr, "KHR") : null,
+              ]
+                .filter(Boolean)
+                .join(" | ") || "US$0.00"
+            }
             accent="sky"
           />
-          <StatCard label="Paid" value={formatMoney(summary.total_paid)} accent="amber" />
+          <StatCard
+            label="Paid"
+            value={
+              [
+                summary.total_paid_usd > 0 ? formatMoney(summary.total_paid_usd, "USD") : null,
+                summary.total_paid_khr > 0 ? formatMoney(summary.total_paid_khr, "KHR") : null,
+              ]
+                .filter(Boolean)
+                .join(" | ") || "US$0.00"
+            }
+            accent="amber"
+          />
           <StatCard
             label="Outstanding"
-            value={formatMoney(summary.total_outstanding)}
+            value={
+              [
+                summary.total_outstanding_usd > 0 ? formatMoney(summary.total_outstanding_usd, "USD") : null,
+                summary.total_outstanding_khr > 0 ? formatMoney(summary.total_outstanding_khr, "KHR") : null,
+              ]
+                .filter(Boolean)
+                .join(" | ") || "US$0.00"
+            }
             accent="rose"
           />
         </div>
@@ -299,17 +328,27 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
           {(field) => <Input {...field} {...form.register("vendor")} />}
         </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Amount">
-            {(field) => (
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                {...field}
-                {...form.register("amount")}
-              />
-            )}
-          </FormField>
+          <div className="grid grid-cols-[1fr_80px] gap-2">
+            <FormField label="Amount">
+              {(field) => (
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...field}
+                  {...form.register("amount")}
+                />
+              )}
+            </FormField>
+            <FormField label="Cur.">
+              {(field) => (
+                <Select {...field} {...form.register("currency")}>
+                  <option value="USD">USD</option>
+                  <option value="KHR">KHR</option>
+                </Select>
+              )}
+            </FormField>
+          </div>
           <FormField label="Paid amount">
             {(field) => (
               <Input
