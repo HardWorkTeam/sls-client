@@ -79,18 +79,25 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
     }
   });
 
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+
   const onUpload = async (files: FileList) => {
     setError(null);
-    try {
-      for (const file of Array.from(files)) {
+    const fileArray = Array.from(files);
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      setUploadProgress(`Uploading ${i + 1} of ${fileArray.length}...`);
+      try {
         await uploadMedia.mutateAsync({
           file,
           options: albumId ? { album_id: Number(albumId) } : undefined,
         });
+      } catch (err) {
+        setError(apiErrorMessage(err));
+        break;
       }
-    } catch (err) {
-      setError(apiErrorMessage(err));
     }
+    setUploadProgress(null);
   };
 
   return (
@@ -119,8 +126,8 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
             ref={fileInput}
             type="file"
             multiple
-            accept="image/*,video/*"
-            className="hidden"
+            accept="image/*,video/*,.heic,.heif,application/*,text/*"
+            className="sr-only"
             onChange={(event) => {
               if (event.target.files?.length) onUpload(event.target.files);
               event.target.value = "";
@@ -129,10 +136,10 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
           <Button
             size="sm"
             onClick={() => fileInput.current?.click()}
-            disabled={uploadMedia.isPending}
+            disabled={uploadMedia.isPending || !!uploadProgress}
           >
             <Upload className="h-4 w-4" />
-            {uploadMedia.isPending ? "Uploading..." : "Upload"}
+            {uploadProgress ?? (uploadMedia.isPending ? "Uploading..." : "Upload")}
           </Button>
         </div>
       </div>

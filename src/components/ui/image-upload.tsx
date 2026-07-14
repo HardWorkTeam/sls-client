@@ -17,7 +17,7 @@ export function ImageUpload({
   value,
   onChange,
   placeholder = "Paste image URL…",
-  accept = "image/jpeg,image/png,image/webp",
+  accept = "image/*,.heic,.heif",
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -154,7 +154,7 @@ export function ImageUpload({
 
       {error && <p className="text-[10px] text-red-600">{error}</p>}
 
-      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={onInputChange} />
+      <input ref={inputRef} type="file" accept={accept} className="sr-only" onChange={onInputChange} />
     </div>
   );
 }
