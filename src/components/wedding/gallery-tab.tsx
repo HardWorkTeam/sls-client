@@ -66,7 +66,7 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
   const confirm = useConfirm();
 
   const form = useForm<AlbumForm>({
-    defaultValues: { name: "", description: "", is_public: false },
+    defaultValues: { name: "", description: "", is_public: true },
   });
 
   const onCreateAlbum = form.handleSubmit(async (values) => {
