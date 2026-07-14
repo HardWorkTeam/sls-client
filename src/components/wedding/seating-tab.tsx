@@ -112,11 +112,11 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   };
 
   const onExport = async () => {
-    const blob = await seatingService.exportCsv(weddingId);
+    const blob = await seatingService.exportExcel(weddingId);
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "seating.csv";
+    anchor.download = "seating.xlsx";
     anchor.click();
     URL.revokeObjectURL(url);
   };

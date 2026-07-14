@@ -63,7 +63,7 @@ export const guestService = {
     return `/weddings/${weddingId}/guests/export`;
   },
 
-  async exportCsv(weddingId: number): Promise<Blob> {
+  async exportExcel(weddingId: number): Promise<Blob> {
     const { data } = await api.get(`/weddings/${weddingId}/guests/export`, {
       responseType: "blob",
     });
