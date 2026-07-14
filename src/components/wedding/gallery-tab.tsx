@@ -22,6 +22,7 @@ import {
   useUploadMedia,
 } from "@/hooks/use-gallery";
 import { apiErrorMessage } from "@/lib/api";
+import { compressImage } from "@/lib/image-compress";
 import type { MediaItem } from "@/types/api";
 
 interface AlbumForm {
@@ -85,7 +86,9 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
     setError(null);
     const fileArray = Array.from(files);
     for (let i = 0; i < fileArray.length; i++) {
-      const file = fileArray[i];
+      let file = fileArray[i];
+      setUploadProgress(`Processing ${i + 1} of ${fileArray.length}...`);
+      file = await compressImage(file);
       setUploadProgress(`Uploading ${i + 1} of ${fileArray.length}...`);
       try {
         await uploadMedia.mutateAsync({
@@ -126,7 +129,7 @@ export function GalleryTab({ weddingId }: { weddingId: number }) {
             ref={fileInput}
             type="file"
             multiple
-            accept="image/*,video/*,.heic,.heif,application/*,text/*"
+            accept="image/*,video/*,application/*,text/*"
             className="sr-only"
             onChange={(event) => {
               if (event.target.files?.length) onUpload(event.target.files);

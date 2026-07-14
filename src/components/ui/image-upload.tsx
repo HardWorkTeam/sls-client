@@ -3,6 +3,7 @@
 import { ImageIcon, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { galleryService } from "@/services/gallery-service";
+import { compressImage } from "@/lib/image-compress";
 
 interface ImageUploadProps {
   weddingId: number;
@@ -17,7 +18,7 @@ export function ImageUpload({
   value,
   onChange,
   placeholder = "Paste image URL…",
-  accept = "image/*,.heic,.heif",
+  accept = "image/*",
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -28,13 +29,15 @@ export function ImageUpload({
 
   const handleFile = async (file: File) => {
     setError(null);
-    if (file.size > MAX_BYTES) {
-      setError(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 50 MB.`);
-      return;
-    }
     setUploading(true);
     try {
-      const item = await galleryService.upload(weddingId, file, { is_public: true });
+      const processedFile = await compressImage(file);
+      if (processedFile.size > MAX_BYTES) {
+        setError(`File too large (${(processedFile.size / 1024 / 1024).toFixed(1)} MB). Max 50 MB.`);
+        setUploading(false);
+        return;
+      }
+      const item = await galleryService.upload(weddingId, processedFile, { is_public: true });
       onChange(item.url);
     } catch {
       setError("Upload failed — check file type or size.");
