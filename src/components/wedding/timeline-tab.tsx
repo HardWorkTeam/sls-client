@@ -115,18 +115,27 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
     setError(null);
     const cleanDays = weddingDays.filter((d) => d.date);
     const currentSettings = (invitation?.settings as Record<string, unknown>) ?? {};
+    // Derive the wedding-level date/time from the selected main wedding day
+    // so dashboard widgets, countdowns, and the wedding model stay in sync.
+    const mainDay = cleanDays[mainDayIndex] ?? cleanDays[0];
 
     try {
-      await updateInvitation.mutateAsync({
-        invitationId: invitation.id,
-        payload: {
-          settings: {
-            ...currentSettings,
-            wedding_days: cleanDays,
-            main_wedding_day_index: mainDayIndex,
+      await Promise.all([
+        updateInvitation.mutateAsync({
+          invitationId: invitation.id,
+          payload: {
+            settings: {
+              ...currentSettings,
+              wedding_days: cleanDays,
+              main_wedding_day_index: mainDayIndex,
+            },
           },
-        },
-      });
+        }),
+        updateWedding.mutateAsync({
+          wedding_date: mainDay?.date || null,
+          wedding_time: mainDay?.time || null,
+        }),
+      ]);
       setDaysSavedMsg(true);
       setTimeout(() => setDaysSavedMsg(false), 2500);
     } catch (err) {
