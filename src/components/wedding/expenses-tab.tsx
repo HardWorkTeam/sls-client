@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { StatCard } from "@/components/ui/stat-card";
+import { DualCurrencyValue, StatCard } from "@/components/ui/stat-card";
 import {
   DataTable,
   FormDialog,
@@ -218,36 +218,21 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
           <StatCard
             label="Total Budget"
             value={
-              [
-                summary.total_amount_usd > 0 ? formatMoney(summary.total_amount_usd, "USD") : null,
-                summary.total_amount_khr > 0 ? formatMoney(summary.total_amount_khr, "KHR") : null,
-              ]
-                .filter(Boolean)
-                .join(" | ") || "US$0.00"
+              <DualCurrencyValue usd={summary.total_amount_usd} khr={summary.total_amount_khr} formatMoney={formatMoney} />
             }
             accent="sky"
           />
           <StatCard
             label="Paid"
             value={
-              [
-                summary.total_paid_usd > 0 ? formatMoney(summary.total_paid_usd, "USD") : null,
-                summary.total_paid_khr > 0 ? formatMoney(summary.total_paid_khr, "KHR") : null,
-              ]
-                .filter(Boolean)
-                .join(" | ") || "US$0.00"
+              <DualCurrencyValue usd={summary.total_paid_usd} khr={summary.total_paid_khr} formatMoney={formatMoney} />
             }
             accent="amber"
           />
           <StatCard
             label="Outstanding"
             value={
-              [
-                summary.total_outstanding_usd > 0 ? formatMoney(summary.total_outstanding_usd, "USD") : null,
-                summary.total_outstanding_khr > 0 ? formatMoney(summary.total_outstanding_khr, "KHR") : null,
-              ]
-                .filter(Boolean)
-                .join(" | ") || "US$0.00"
+              <DualCurrencyValue usd={summary.total_outstanding_usd} khr={summary.total_outstanding_khr} formatMoney={formatMoney} />
             }
             accent="rose"
           />
