@@ -19,12 +19,13 @@ import {
   useDeleteGift,
   useGifts,
   useGiftSummary,
+  useUpdateGift,
 } from "@/hooks/use-gifts";
 import { useCreateGuest, useGuests } from "@/hooks/use-guests";
 import { apiErrorMessage } from "@/lib/api";
 import type { Gift } from "@/types/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
-import { Gift as GiftIcon, Plus, Trash2, UserPlus } from "lucide-react";
+import { Gift as GiftIcon, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -58,6 +59,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const [giftType, setGiftType] = useState("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingGift, setEditingGift] = useState<Gift | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const gifts = useGifts(weddingId, {
@@ -67,6 +69,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const { data: summary } = useGiftSummary(weddingId);
   const { data: guestsPage } = useGuests(weddingId, { per_page: 200 });
   const createGift = useCreateGift(weddingId);
+  const updateGift = useUpdateGift(weddingId);
   const createGuest = useCreateGuest(weddingId);
   const { mutate: removeGift } = useDeleteGift(weddingId);
   const confirm = useConfirm();
@@ -76,8 +79,24 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const watchGuestId = form.watch("guest_id");
 
   const openDialog = () => {
+    setEditingGift(null);
     form.reset(EMPTY_FORM);
     setError(null);
+    setDialogOpen(true);
+  };
+
+  const openEditDialog = (gift: Gift) => {
+    setError(null);
+    setEditingGift(gift);
+    form.reset({
+      guest_id: gift.guest_id ? String(gift.guest_id) : "",
+      gift_type: gift.gift_type,
+      amount: gift.amount != null ? String(gift.amount) : "",
+      currency: gift.currency || "USD",
+      item_name: gift.item_name ?? "",
+      note: gift.note ?? "",
+      new_guest_name: "",
+    });
     setDialogOpen(true);
   };
 
@@ -99,14 +118,20 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         resolvedGuestId = Number(values.guest_id);
       }
 
-      await createGift.mutateAsync({
+      const payload = {
         guest_id: resolvedGuestId,
         gift_type: values.gift_type,
         amount: values.amount ? Number(values.amount) : null,
         currency: values.currency,
         item_name: values.item_name || null,
         note: values.note || null,
-      });
+      };
+
+      if (editingGift) {
+        await updateGift.mutateAsync({ giftId: editingGift.id, payload });
+      } else {
+        await createGift.mutateAsync(payload);
+      }
       setDialogOpen(false);
     } catch (err) {
       setError(apiErrorMessage(err));
@@ -155,25 +180,35 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
       {
         key: "actions",
         header: "",
-        headClassName: "w-16",
+        headClassName: "w-24",
         cell: (gift) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Delete gift"
-            onClick={async () => {
-              if (
-                await confirm({
-                  title: "Delete this gift record?",
-                  description: "This gift entry will be permanently removed.",
-                })
-              ) {
-                removeGift(gift.id);
-              }
-            }}
-          >
-            <Trash2 className="h-4 w-4 text-red-500" />
-          </Button>
+          <div className="flex gap-1 justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Edit gift"
+              onClick={() => openEditDialog(gift)}
+            >
+              <Pencil className="h-4 w-4 text-zinc-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Delete gift"
+              onClick={async () => {
+                if (
+                  await confirm({
+                    title: "Delete this gift record?",
+                    description: "This gift entry will be permanently removed.",
+                  })
+                ) {
+                  removeGift(gift.id);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </Button>
+          </div>
         ),
       },
     ],
@@ -253,11 +288,11 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
       <FormDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        title="Record Gift"
+        title={editingGift ? "Edit Gift" : "Record Gift"}
         onSubmit={onSubmit}
         error={error}
-        pending={createGift.isPending || createGuest.isPending}
-        submitLabel="Save Gift"
+        pending={createGift.isPending || updateGift.isPending || createGuest.isPending}
+        submitLabel={editingGift ? "Save Changes" : "Save Gift"}
       >
         <FormField label="Guest">
           {(field) => (
