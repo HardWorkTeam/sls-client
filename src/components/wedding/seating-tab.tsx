@@ -1,12 +1,9 @@
 "use client";
 
-import { Download, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
-import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +22,9 @@ import {
 } from "@/hooks/use-seating";
 import { apiErrorMessage } from "@/lib/api";
 import { seatingService } from "@/services/seating-service";
+import { Download, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 
 interface TableForm {
   table_name: string;
@@ -57,7 +57,9 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
     defaultValues: { table_name: "", table_number: "", capacity: "10" },
   });
 
-  const unseatedGuests = (guestsPage?.data ?? []).filter((guest) => !guest.seating);
+  const unseatedGuests = (guestsPage?.data ?? []).filter(
+    (guest) => !guest.seating,
+  );
 
   const onCreateTable = form.handleSubmit(async (values) => {
     setError(null);
@@ -126,8 +128,13 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         {report ? (
           <p className="text-sm text-zinc-600">
-            <span className="font-medium text-zinc-900">{report.total_seated}</span> of{" "}
-            <span className="font-medium text-zinc-900">{report.total_capacity}</span>{" "}
+            <span className="font-medium text-zinc-900">
+              {report.total_seated}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-zinc-900">
+              {report.total_capacity}
+            </span>{" "}
             seats filled · {report.unseated_guests} guests unseated
           </p>
         ) : (
@@ -151,12 +158,17 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
             onClick={() => fileInput.current?.click()}
             disabled={importTables.isPending}
           >
-            <Download className="h-4 w-4" /> Import XLSX
+            <Download className="h-4 w-4" /> Import Excel
           </Button>
           <Button variant="outline" size="sm" onClick={onExport}>
             <Upload className="h-4 w-4" /> Export
           </Button>
-          <Button variant="outline" size="sm" onClick={onAutoSeat} disabled={autoSeat.isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAutoSeat}
+            disabled={autoSeat.isPending}
+          >
             <Wand2 className="h-4 w-4" /> Auto Seating
           </Button>
           <Button size="sm" onClick={() => setTableDialog(true)}>
@@ -193,7 +205,9 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                       {table.table_number ? `#${table.table_number} · ` : ""}
                       {table.table_name}
                     </CardTitle>
-                    <p className={`text-xs ${isFull ? "text-red-600" : "text-zinc-500"}`}>
+                    <p
+                      className={`text-xs ${isFull ? "text-red-600" : "text-zinc-500"}`}
+                    >
                       {seated}/{table.capacity || "∞"} seats
                     </p>
                   </div>
@@ -245,7 +259,9 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                       <Select
                         className="h-8 flex-1 text-xs"
                         value={assignGuestId}
-                        onChange={(event) => setAssignGuestId(event.target.value)}
+                        onChange={(event) =>
+                          setAssignGuestId(event.target.value)
+                        }
                       >
                         <option value="">Choose guest...</option>
                         {unseatedGuests.map((guest) => (
@@ -254,7 +270,11 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                           </option>
                         ))}
                       </Select>
-                      <Button size="sm" onClick={onAssign} disabled={!assignGuestId}>
+                      <Button
+                        size="sm"
+                        onClick={onAssign}
+                        disabled={!assignGuestId}
+                      >
                         Seat
                       </Button>
                     </div>
@@ -279,25 +299,46 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
         </div>
       )}
 
-      <Dialog open={tableDialog} onClose={() => setTableDialog(false)} title="Add Table">
+      <Dialog
+        open={tableDialog}
+        onClose={() => setTableDialog(false)}
+        title="Add Table"
+      >
         <form onSubmit={onCreateTable} className="space-y-3">
           <div>
             <Label htmlFor="table-name">Table name</Label>
-            <Input id="table-name" {...form.register("table_name", { required: true })} />
+            <Input
+              id="table-name"
+              {...form.register("table_name", { required: true })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="table-number">Table number</Label>
-              <Input id="table-number" type="number" min={1} {...form.register("table_number")} />
+              <Input
+                id="table-number"
+                type="number"
+                min={1}
+                {...form.register("table_number")}
+              />
             </div>
             <div>
               <Label htmlFor="table-capacity">Capacity</Label>
-              <Input id="table-capacity" type="number" min={0} {...form.register("capacity")} />
+              <Input
+                id="table-capacity"
+                type="number"
+                min={0}
+                {...form.register("capacity")}
+              />
             </div>
           </div>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setTableDialog(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setTableDialog(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={createTable.isPending}>
