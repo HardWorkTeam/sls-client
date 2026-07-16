@@ -11,6 +11,7 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   placeholder?: string;
   accept?: string;
+  isPublic?: boolean;
 }
 
 export function ImageUpload({
@@ -19,6 +20,7 @@ export function ImageUpload({
   onChange,
   placeholder = "Paste image URL…",
   accept = "image/*",
+  isPublic = false,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -37,7 +39,7 @@ export function ImageUpload({
         setUploading(false);
         return;
       }
-      const item = await galleryService.upload(weddingId, processedFile, { is_public: true });
+      const item = await galleryService.upload(weddingId, processedFile, { is_public: isPublic });
       onChange(item.url);
     } catch {
       setError("Upload failed — check file type or size.");

@@ -1020,7 +1020,7 @@ export default function InvitationEditPage() {
               <TextInput value={accountNumber} onChange={setAccountNumber} />
             </FieldRow>
             <FieldRow label="QR Code Image">
-              <ImageUpload weddingId={wedding.id} value={bankQrUrl} onChange={setBankQrUrl} placeholder="https://… or upload QR image" />
+              <ImageUpload weddingId={wedding.id} value={bankQrUrl} onChange={setBankQrUrl} isPublic={false} placeholder="https://… or upload QR image" />
             </FieldRow>
           </Accordion>
 
@@ -1038,6 +1038,7 @@ export default function InvitationEditPage() {
                     weddingId={wedding.id}
                     value={url}
                     onChange={(v) => updateGalleryItem(i, v)}
+                    isPublic={true}
                     placeholder="https://… or upload"
                   />
                 </div>
