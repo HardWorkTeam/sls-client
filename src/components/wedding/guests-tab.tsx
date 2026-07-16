@@ -328,7 +328,7 @@ export function GuestsTab({
             <input
               ref={fileInput}
               type="file"
-              accept=".csv"
+              accept=".xlsx,.xls,.csv"
               className="hidden"
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -337,7 +337,7 @@ export function GuestsTab({
               }}
             />
             <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
-              <Download className="h-4 w-4" /> Import CSV
+              <Download className="h-4 w-4" /> Import XLSX
             </Button>
             <Button variant="outline" size="sm" onClick={onExport}>
               <Upload className="h-4 w-4" /> Export
@@ -458,7 +458,7 @@ export function GuestsTab({
         empty={{
           title: "No guests yet",
           description:
-            "Add guests manually or import a CSV file (columns: name, phone, email, address, group, is_vip, note).",
+            "Add guests manually or import an XLSX / CSV file (columns: name, phone, email, address, group, is_vip, note).",
           action: (
             <Button onClick={openCreate} disabled={atGuestLimit}>
               <Plus className="h-4 w-4" /> Add Guest
