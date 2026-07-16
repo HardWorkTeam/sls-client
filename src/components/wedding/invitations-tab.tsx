@@ -173,16 +173,18 @@ export function InvitationsTab({
                       <Pencil className="h-4 w-4" />
                     </button>
                     {/* View → open live URL */}
-                    <a
-                      href={invitation.public_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
-                      aria-label="View invitation"
-                      title="View live"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
+                    {invitation.status === "published" && (
+                      <a
+                        href={invitation.public_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                        aria-label="View invitation"
+                        title="View live"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </a>
+                    )}
                     <Badge variant={statusVariant(invitation.status)}>
                       <span className="capitalize">{invitation.status}</span>
                     </Badge>
@@ -199,24 +201,30 @@ export function InvitationsTab({
                 </div>
 
                 {/* URL row */}
-                <div className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2">
-                  <p className="flex-1 truncate font-mono text-xs text-zinc-600">
-                    {invitation.public_url}
-                  </p>
-                  <button
-                    type="button"
-                    className="text-zinc-400 hover:text-zinc-700"
-                    onClick={() => copyUrl(invitation.id, invitation.public_url)}
-                    aria-label="Copy public URL"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </button>
-                  {copied === invitation.id ? (
-                    <span className="text-xs text-emerald-600">Copied!</span>
-                  ) : null}
-                </div>
-
-                {/* Action buttons */}
+                {invitation.status === "published" ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2">
+                    <p className="flex-1 truncate font-mono text-xs text-zinc-600">
+                      {invitation.public_url}
+                    </p>
+                    <button
+                      type="button"
+                      className="text-zinc-400 hover:text-zinc-700"
+                      onClick={() => copyUrl(invitation.id, invitation.public_url)}
+                      aria-label="Copy public URL"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    {copied === invitation.id ? (
+                      <span className="text-xs text-emerald-600">Copied!</span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-50/50 border border-amber-100/50 px-3 py-2">
+                    <p className="flex-1 text-xs text-amber-800">
+                      Publish this invitation to share the public link.
+                    </p>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {invitation.status !== "published" ? (
                     <Button

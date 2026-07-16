@@ -168,6 +168,7 @@ export interface Invitation {
   status: InvitationStatus;
   published_at: string | null;
   public_url: string;
+  preview_url: string;
   template?: Pick<InvitationTemplate, 'id' | 'slug' | 'name'> | null;
   guests_count?: number;
   rsvp_responses_count?: number;

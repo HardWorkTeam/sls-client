@@ -1100,7 +1100,7 @@ export default function InvitationEditPage() {
 
           {/* Screen */}
           <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-white">
-            <iframe key={previewKey} src={invitation.public_url}
+            <iframe key={previewKey} src={invitation.preview_url}
               title="Invitation preview" className="h-full w-full border-0"
               sandbox="allow-scripts allow-same-origin allow-forms" />
           </div>
