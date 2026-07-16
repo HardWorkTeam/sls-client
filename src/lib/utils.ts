@@ -52,9 +52,11 @@ export function formatMoney(
   currency = "USD",
 ): string {
   if (amount === null || amount === undefined) return "—";
+  const fractionDigits = currency === "KHR" ? 0 : 2;
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(amount);
 }
