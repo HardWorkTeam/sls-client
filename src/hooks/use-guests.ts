@@ -96,7 +96,7 @@ export function useDeleteGuest(weddingId: number) {
 export function useDeleteAllGuests(weddingId: number) {
   const invalidate = useInvalidateGuests(weddingId);
   return useMutation({
-    mutationFn: () => guestService.removeAll(weddingId),
+    mutationFn: (guestIds?: number[]) => guestService.removeAll(weddingId, guestIds),
     onSuccess: invalidate,
   });
 }

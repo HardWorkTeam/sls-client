@@ -106,6 +106,7 @@ export function GuestsTab({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Guest | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [isAllMatchingSelected, setIsAllMatchingSelected] = useState(false);
   const [bulkInvitationId, setBulkInvitationId] = useState("");
   // Which invitation the "copy link" action uses for guests that have no
   // invitation of their own assigned. Defaults to the first invitation.
@@ -149,20 +150,28 @@ export function GuestsTab({
   const { data: checkInStats } = useCheckInStats(weddingId, canCheckIn);
   const confirm = useConfirm();
 
-  const onEraseAll = async () => {
+  const onDeleteSelected = async () => {
     setFeedback(null);
     setError(null);
+    const count = isAllMatchingSelected ? guestTotal : selected.length;
+    if (count === 0) return;
+
     if (
       await confirm({
-        title: "Erase all guests?",
+        title: isAllMatchingSelected
+          ? `Erase all ${guestTotal} guests?`
+          : `Delete ${count} selected guest${count > 1 ? "s" : ""}?`,
         description:
-          "Are you sure you want to delete all guests for this wedding? This action cannot be undone.",
+          "The selected guests and their RSVP/seating assignments will be permanently removed. This action cannot be undone.",
       })
     ) {
       try {
-        const res = await deleteAllGuests.mutateAsync();
+        const res = await deleteAllGuests.mutateAsync(
+          isAllMatchingSelected ? undefined : selected,
+        );
         setFeedback(res.message);
         setSelected([]);
+        setIsAllMatchingSelected(false);
       } catch (err) {
         setError(apiErrorMessage(err));
       }
@@ -242,24 +251,30 @@ export function GuestsTab({
   };
 
   const onBulkInvite = async () => {
-    if (!bulkInvitationId || selected.length === 0) return;
+    if (!bulkInvitationId || (selected.length === 0 && !isAllMatchingSelected)) return;
     setError(null);
     try {
+      const targetIds = isAllMatchingSelected
+        ? (data?.data ?? []).map((g) => g.id)
+        : selected;
       const result = await bulkInvite.mutateAsync({
-        guestIds: selected,
+        guestIds: targetIds,
         invitationId: Number(bulkInvitationId),
       });
       setFeedback(result.message);
       setSelected([]);
+      setIsAllMatchingSelected(false);
     } catch (err) {
       setError(apiErrorMessage(err));
     }
   };
 
-  const toggleSelected = (id: number) =>
+  const toggleSelected = (id: number) => {
+    setIsAllMatchingSelected(false);
     setSelected((current) =>
       current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
     );
+  };
 
   // The invitation used as the fallback when a guest has none of their own
   // assigned. Honours the user's selection, otherwise the first invitation.
@@ -372,15 +387,6 @@ export function GuestsTab({
                 <ScanLine className="h-4 w-4" /> Check-in Scanner
               </Button>
             ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-              onClick={onEraseAll}
-              disabled={guestTotal === 0 || deleteAllGuests.isPending}
-            >
-              <Trash2 className="h-4 w-4" /> Erase All
-            </Button>
             <Button size="sm" onClick={openCreate} disabled={atGuestLimit}>
               <Plus className="h-4 w-4" /> Add Guest
             </Button>
@@ -455,28 +461,75 @@ export function GuestsTab({
         </p>
       ) : null}
 
-      {selected.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
-          <p className="text-sm text-emerald-800">{selected.length} selected</p>
-          <Select
-            className="w-56"
-            value={bulkInvitationId}
-            onChange={(event) => setBulkInvitationId(event.target.value)}
-          >
-            <option value="">Choose invitation...</option>
-            {(invitations ?? []).map((invitation) => (
-              <option key={invitation.id} value={invitation.id}>
-                {invitation.title ?? invitation.invitation_code}
-              </option>
-            ))}
-          </Select>
-          <Button
-            size="sm"
-            onClick={onBulkInvite}
-            disabled={!bulkInvitationId || bulkInvite.isPending}
-          >
-            Bulk Invite
-          </Button>
+      {selected.length > 0 || isAllMatchingSelected ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
+          <div className="flex items-center gap-2 text-sm text-emerald-900">
+            <span className="font-semibold">
+              {isAllMatchingSelected
+                ? `All ${guestTotal} guests selected`
+                : `${selected.length} selected`}
+            </span>
+            {!isAllMatchingSelected && guestTotal > selected.length ? (
+              <button
+                type="button"
+                onClick={() => setIsAllMatchingSelected(true)}
+                className="ml-2 text-xs font-medium text-emerald-700 underline hover:text-emerald-900"
+              >
+                Select all {guestTotal} guests in wedding
+              </button>
+            ) : null}
+            {isAllMatchingSelected ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected([]);
+                  setIsAllMatchingSelected(false);
+                }}
+                className="ml-2 text-xs font-medium text-emerald-700 underline hover:text-emerald-900"
+              >
+                Clear selection
+              </button>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {(invitations ?? []).length > 0 ? (
+              <>
+                <Select
+                  className="h-8 w-52 text-xs"
+                  value={bulkInvitationId}
+                  onChange={(event) => setBulkInvitationId(event.target.value)}
+                >
+                  <option value="">Choose invitation...</option>
+                  {(invitations ?? []).map((invitation) => (
+                    <option key={invitation.id} value={invitation.id}>
+                      {invitation.title ?? invitation.invitation_code}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={onBulkInvite}
+                  disabled={!bulkInvitationId || bulkInvite.isPending}
+                >
+                  Bulk Invite
+                </Button>
+              </>
+            ) : null}
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={onDeleteSelected}
+              disabled={deleteAllGuests.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+              {isAllMatchingSelected
+                ? "Delete All Guests"
+                : `Delete Selected (${selected.length})`}
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -497,23 +550,34 @@ export function GuestsTab({
           ),
         }}
       >
-        {(guestsPage) => (
-          <>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all"
-                    checked={
-                      selected.length === guestsPage.data.length && guestsPage.data.length > 0
-                    }
-                    onChange={(event) =>
-                      setSelected(event.target.checked ? guestsPage.data.map((g) => g.id) : [])
-                    }
-                  />
-                </TableHead>
+        {(guestsPage) => {
+          const currentPageIds = guestsPage.data.map((g) => g.id);
+          const isPageSelected =
+            currentPageIds.length > 0 &&
+            currentPageIds.every((id) => selected.includes(id));
+          const isHeaderChecked = isAllMatchingSelected || isPageSelected;
+
+          return (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all"
+                        checked={isHeaderChecked}
+                        onChange={(event) => {
+                          if (event.target.checked) {
+                            setSelected(currentPageIds);
+                            setIsAllMatchingSelected(false);
+                          } else {
+                            setSelected([]);
+                            setIsAllMatchingSelected(false);
+                          }
+                        }}
+                      />
+                    </TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Group</TableHead>
@@ -652,7 +716,8 @@ export function GuestsTab({
           </Table>
           <Pagination meta={guestsPage.meta} onPageChange={setPage} />
           </>
-        )}
+          );
+        }}
       </QueryState>
 
       {/* Add / Edit Guest dialog */}

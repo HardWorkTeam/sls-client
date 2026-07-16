@@ -49,9 +49,10 @@ export const guestService = {
     await api.delete(`/weddings/${weddingId}/guests/${guestId}`);
   },
 
-  async removeAll(weddingId: number): Promise<{ message: string; deleted: number }> {
+  async removeAll(weddingId: number, guestIds?: number[]): Promise<{ message: string; deleted: number }> {
     const { data } = await api.delete<{ message: string; deleted: number }>(
       `/weddings/${weddingId}/guests`,
+      { data: guestIds && guestIds.length > 0 ? { guest_ids: guestIds } : undefined },
     );
     return data;
   },
