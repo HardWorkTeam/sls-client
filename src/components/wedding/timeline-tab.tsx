@@ -78,6 +78,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
   const confirm = useConfirm();
 
   const [weddingDays, setWeddingDays] = useState<WeddingDay[]>([EMPTY_DAY]);
+  const [mainDayIndex, setMainDayIndex] = useState<number>(0);
   const [daysSavedMsg, setDaysSavedMsg] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -101,6 +102,9 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
     if (saved.length > 0) {
       setWeddingDays(saved);
     }
+    if (typeof s.main_wedding_day_index === "number") {
+      setMainDayIndex(s.main_wedding_day_index);
+    }
   }, [invitation]);
 
   const updateWeddingDay = (i: number, patch: Partial<WeddingDay>) =>
@@ -119,6 +123,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
           settings: {
             ...currentSettings,
             wedding_days: cleanDays,
+            main_wedding_day_index: mainDayIndex,
           },
         },
       });
@@ -223,15 +228,38 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {weddingDays.map((day, i) => (
-            <div key={i} className="relative space-y-2 rounded-lg border border-stone-200 bg-stone-50/70 p-3">
+            <div
+              key={i}
+              className={`relative space-y-2 rounded-lg border p-3 transition-colors ${
+                mainDayIndex === i
+                  ? "border-amber-300 bg-amber-50/50 ring-1 ring-amber-200"
+                  : "border-stone-200 bg-stone-50/70"
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-700">
-                  ថ្ងៃទី{i + 1} · Day {i + 1}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-stone-700">
+                    ថ្ងៃទី{i + 1} · Day {i + 1}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMainDayIndex(i)}
+                    className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                      mainDayIndex === i
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "bg-stone-200/80 text-stone-600 hover:bg-stone-300"
+                    }`}
+                  >
+                    {mainDayIndex === i ? "★ Main Wedding Date" : "Set as Main Date"}
+                  </button>
+                </div>
                 {weddingDays.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => setWeddingDays((days) => days.filter((_, idx) => idx !== i))}
+                    onClick={() => {
+                      setWeddingDays((days) => days.filter((_, idx) => idx !== i));
+                      if (mainDayIndex === i) setMainDayIndex(0);
+                    }}
                     className="text-stone-400 hover:text-red-500 transition"
                     aria-label={`Remove day ${i + 1}`}
                   >

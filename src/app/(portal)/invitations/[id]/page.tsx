@@ -341,6 +341,7 @@ export default function InvitationEditPage() {
   // first day is mirrored to the wedding's own date/time fields so countdowns
   // and dashboards keep a single anchor date.
   const [weddingDays, setWeddingDays] = useState<WeddingDay[]>([EMPTY_DAY]);
+  const [mainDayIndex, setMainDayIndex] = useState<number>(0);
   const [ceremonyVenue, setCeremonyVenue] = useState("");
   const [receptionVenue, setReceptionVenue] = useState("");
   const [mapsLink, setMapsLink] = useState("");
@@ -364,21 +365,11 @@ export default function InvitationEditPage() {
   const [evtIsPublic, setEvtIsPublic] = useState(true);
 
   // ── Initialise from API data ──────────────────────────────────────────────
-  // These effects seed editable form state from async-loaded data the first
-  // time a given invitation/wedding record arrives. We intentionally skip
-  // re-initialization on subsequent refetches (e.g. after Save invalidates the
-  // query) to prevent React Query's background refetch from overwriting the
-  // user's in-flight edits with stale or even up-to-date-but-re-rendered data.
-  //
-  // initInvitationRef tracks the invitation id that has already been seeded.
-  // When the page navigates to a different invitation (id changes) the ref is
-  // cleared so the new record is correctly hydrated.
   const initInvitationRef = useRef<number | null>(null);
   const initWeddingRef = useRef<number | null>(null);
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!invitation) return;
-    // Already seeded this invitation — skip to avoid overwriting edits.
     if (initInvitationRef.current === invitation.id) return;
     initInvitationRef.current = invitation.id;
 
@@ -390,6 +381,7 @@ export default function InvitationEditPage() {
     if (s.sections) setSections((p) => ({ ...p, ...(s.sections as Record<SectionKey, boolean>) }));
     if (typeof s.invitation_text_kh === "string") setTextKh(s.invitation_text_kh);
     if (typeof s.invitation_text_en === "string") setTextEn(s.invitation_text_en);
+    if (typeof s.main_wedding_day_index === "number") setMainDayIndex(s.main_wedding_day_index);
     if (Array.isArray(s.gallery_urls)) setGallery(s.gallery_urls as string[]);
 
     const bank = s.bank_account as Record<string, string> | undefined;
@@ -423,7 +415,6 @@ export default function InvitationEditPage() {
 
   useEffect(() => {
     if (!wedding) return;
-    // Already seeded this wedding — skip to avoid overwriting edits.
     if (initWeddingRef.current === wedding.id) return;
     initWeddingRef.current = wedding.id;
 
@@ -433,15 +424,9 @@ export default function InvitationEditPage() {
     setStoryDescription(wedding.story_description ?? "");
   }, [wedding]);
 
-  // Wedding days need both records: the saved list lives in invitation
-  // settings, but a wedding created before multi-day support only has the
-  // single wedding_date/time — fall back to that as day 1.
-  // This effect shares the invitation init guard — wedding days are part of
-  // invitation settings and are seeded together with the first invitation load.
   const initWeddingDaysRef = useRef<number | null>(null);
   useEffect(() => {
     if (!invitation || !wedding) return;
-    // Skip if we've already seeded wedding days for this invitation.
     if (initWeddingDaysRef.current === invitation.id) return;
     initWeddingDaysRef.current = invitation.id;
 
@@ -467,11 +452,8 @@ export default function InvitationEditPage() {
     setSaving(true);
     setSaveState("idle");
     setSaveError("");
-    // Drop day rows without a date
     const cleanDays = weddingDays.filter((d) => d.date);
     try {
-      // Snapshot the current settings from cache before the save so the
-      // spread picks up any previously persisted keys we don't track locally.
       const currentSettings = (invitation.settings as Record<string, unknown>) ?? {};
       await Promise.all([
         updateWedding.mutateAsync({
@@ -480,7 +462,6 @@ export default function InvitationEditPage() {
           google_map_link: mapsLink || null,
           story_description: storyDescription || null,
         }),
-        // 2. Save invitation fields + settings
         updateInvitation.mutateAsync({
           invitationId: invitation.id,
           payload: {
@@ -493,6 +474,7 @@ export default function InvitationEditPage() {
               invitation_text_kh: textKh,
               invitation_text_en: textEn,
               wedding_days: cleanDays,
+              main_wedding_day_index: mainDayIndex,
               gallery_urls: gallery.filter(Boolean),
               bank_account: {
                 bank: bankName,
@@ -802,15 +784,38 @@ export default function InvitationEditPage() {
               </div>
 
               {weddingDays.map((day, i) => (
-                <div key={i} className="space-y-2 rounded-md border border-stone-200 bg-stone-50 p-2.5">
+                <div
+                  key={i}
+                  className={`space-y-2 rounded-md border p-2.5 transition-colors ${
+                    mainDayIndex === i
+                      ? "border-amber-300 bg-amber-50/40 ring-1 ring-amber-200"
+                      : "border-stone-200 bg-stone-50"
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">
-                      ថ្ងៃទី{i + 1} · Day {i + 1}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-stone-500">
+                        ថ្ងៃទី{i + 1} · Day {i + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setMainDayIndex(i)}
+                        className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                          mainDayIndex === i
+                            ? "bg-amber-500 text-white shadow-sm"
+                            : "bg-stone-200/80 text-stone-600 hover:bg-stone-300"
+                        }`}
+                      >
+                        {mainDayIndex === i ? "★ Main Wedding Date" : "Set as Main Date"}
+                      </button>
+                    </div>
                     {weddingDays.length > 1 ? (
                       <button
                         type="button"
-                        onClick={() => setWeddingDays((days) => days.filter((_, idx) => idx !== i))}
+                        onClick={() => {
+                          setWeddingDays((days) => days.filter((_, idx) => idx !== i));
+                          if (mainDayIndex === i) setMainDayIndex(0);
+                        }}
                         className="text-stone-300 hover:text-red-500"
                         aria-label={`Remove day ${i + 1}`}
                       >
