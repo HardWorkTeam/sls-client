@@ -89,7 +89,7 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
   const invitation = invitations?.[0];
 
   useEffect(() => {
-    if (!invitation && !wedding) return;
+    if (!invitation) return;
     const s = (invitation?.settings ?? {}) as Record<string, unknown>;
     const saved = Array.isArray(s.wedding_days)
       ? (s.wedding_days as Partial<WeddingDay>[]).map((d) => ({
@@ -100,50 +100,28 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
       : [];
     if (saved.length > 0) {
       setWeddingDays(saved);
-    } else if (wedding?.wedding_date) {
-      setWeddingDays([
-        {
-          date: wedding.wedding_date ? String(wedding.wedding_date).slice(0, 10) : "",
-          time: wedding.wedding_time ? String(wedding.wedding_time).slice(0, 5) : "",
-          venue: wedding.ceremony_venue ?? "",
-        },
-      ]);
     }
-  }, [invitation, wedding]);
+  }, [invitation]);
 
   const updateWeddingDay = (i: number, patch: Partial<WeddingDay>) =>
     setWeddingDays((days) => days.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
 
   const handleSaveDays = async () => {
-    if (!wedding) return;
+    if (!invitation) return;
     setError(null);
     const cleanDays = weddingDays.filter((d) => d.date);
-    const firstDay = cleanDays[0];
     const currentSettings = (invitation?.settings as Record<string, unknown>) ?? {};
 
     try {
-      const promises: Promise<unknown>[] = [
-        updateWedding.mutateAsync({
-          wedding_date: firstDay?.date || null,
-          wedding_time: firstDay?.time || null,
-        }),
-      ];
-
-      if (invitation) {
-        promises.push(
-          updateInvitation.mutateAsync({
-            invitationId: invitation.id,
-            payload: {
-              settings: {
-                ...currentSettings,
-                wedding_days: cleanDays,
-              },
-            },
-          }),
-        );
-      }
-
-      await Promise.all(promises);
+      await updateInvitation.mutateAsync({
+        invitationId: invitation.id,
+        payload: {
+          settings: {
+            ...currentSettings,
+            wedding_days: cleanDays,
+          },
+        },
+      });
       setDaysSavedMsg(true);
       setTimeout(() => setDaysSavedMsg(false), 2500);
     } catch (err) {

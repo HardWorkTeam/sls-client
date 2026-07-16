@@ -456,13 +456,9 @@ export default function InvitationEditPage() {
     if (saved.length > 0) {
       setWeddingDays(saved);
     } else {
-      setWeddingDays([{
-        ...EMPTY_DAY,
-        date: wedding.wedding_date ?? "",
-        time: wedding.wedding_time?.slice(0, 5) ?? "",
-      }]);
+      setWeddingDays([EMPTY_DAY]);
     }
-  }, [invitation, wedding]);
+  }, [invitation]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // ── Save all ──────────────────────────────────────────────────────────────
@@ -471,18 +467,14 @@ export default function InvitationEditPage() {
     setSaving(true);
     setSaveState("idle");
     setSaveError("");
-    // Drop day rows without a date; the first remaining day anchors the
-    // wedding's own date/time (countdown, dashboard, RSVP deadline).
+    // Drop day rows without a date
     const cleanDays = weddingDays.filter((d) => d.date);
-    const firstDay = cleanDays[0];
     try {
       // Snapshot the current settings from cache before the save so the
       // spread picks up any previously persisted keys we don't track locally.
       const currentSettings = (invitation.settings as Record<string, unknown>) ?? {};
       await Promise.all([
         updateWedding.mutateAsync({
-          wedding_date: firstDay?.date || null,
-          wedding_time: firstDay?.time || null,
           ceremony_venue: ceremonyVenue || null,
           reception_venue: receptionVenue || null,
           google_map_link: mapsLink || null,
