@@ -788,7 +788,7 @@ export default function InvitationEditPage() {
                   key={i}
                   className={`space-y-2 rounded-md border p-2.5 transition-colors ${
                     mainDayIndex === i
-                      ? "border-amber-300 bg-amber-50/40 ring-1 ring-amber-200"
+                      ? "border-emerald-300 bg-emerald-50/40 ring-1 ring-emerald-200"
                       : "border-stone-200 bg-stone-50"
                   }`}
                 >
@@ -802,7 +802,7 @@ export default function InvitationEditPage() {
                         onClick={() => setMainDayIndex(i)}
                         className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
                           mainDayIndex === i
-                            ? "bg-amber-500 text-white shadow-sm"
+                            ? "bg-emerald-600 text-white shadow-sm"
                             : "bg-stone-200/80 text-stone-600 hover:bg-stone-300"
                         }`}
                       >
