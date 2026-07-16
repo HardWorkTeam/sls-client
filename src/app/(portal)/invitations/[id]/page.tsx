@@ -307,7 +307,7 @@ export default function InvitationEditPage() {
   const [coverImagePath, setCoverImagePath] = useState("");
   const [sections, setSections] = useState<Record<SectionKey, boolean>>(DEFAULT_SECTIONS);
   const [textKh, setTextKh] = useState("មានកិត្តិយសសូមគោរពអញ្ជើញ ចូលរួមជាភ្ញៀវកិត្តិយស");
-  const [textEn, setTextEn] = useState("CORDIALLY REQUEST THE HONOR OF YOUR PRESENCE");
+  const [textEn, setTextEn] = useState("");
 
   // Gift registry (stored in invitation settings)
   const [bankName, setBankName] = useState("");
