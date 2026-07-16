@@ -458,7 +458,7 @@ export function GuestsTab({
         empty={{
           title: "No guests yet",
           description:
-            "Add guests manually or import an XLSX / CSV file (columns: name, phone, email, address, group, is_vip, note).",
+            "Add guests manually or import an XLSX / CSV file. Supports simple name-only lists, numbered lines (e.g. 1. Guest Name), and standard guest tables.",
           action: (
             <Button onClick={openCreate} disabled={atGuestLimit}>
               <Plus className="h-4 w-4" /> Add Guest
