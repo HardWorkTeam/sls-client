@@ -49,6 +49,13 @@ export const guestService = {
     await api.delete(`/weddings/${weddingId}/guests/${guestId}`);
   },
 
+  async removeAll(weddingId: number): Promise<{ message: string; deleted: number }> {
+    const { data } = await api.delete<{ message: string; deleted: number }>(
+      `/weddings/${weddingId}/guests`,
+    );
+    return data;
+  },
+
   async importCsv(weddingId: number, file: File) {
     const form = new FormData();
     form.append("file", file);

@@ -47,6 +47,7 @@ import {
   useCheckInStats,
   useCreateGuest,
   useCreateGuestGroup,
+  useDeleteAllGuests,
   useDeleteGuest,
   useDeleteGuestGroup,
   useGuestGroups,
@@ -138,6 +139,7 @@ export function GuestsTab({
   const createGuest = useCreateGuest(weddingId);
   const updateGuest = useUpdateGuest(weddingId);
   const deleteGuest = useDeleteGuest(weddingId);
+  const deleteAllGuests = useDeleteAllGuests(weddingId);
   const importGuests = useImportGuests(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
   const createGroup = useCreateGuestGroup(weddingId);
@@ -146,6 +148,26 @@ export function GuestsTab({
   const setCheckIn = useSetCheckIn(weddingId);
   const { data: checkInStats } = useCheckInStats(weddingId, canCheckIn);
   const confirm = useConfirm();
+
+  const onEraseAll = async () => {
+    setFeedback(null);
+    setError(null);
+    if (
+      await confirm({
+        title: "Erase all guests?",
+        description:
+          "Are you sure you want to delete all guests for this wedding? This action cannot be undone.",
+      })
+    ) {
+      try {
+        const res = await deleteAllGuests.mutateAsync();
+        setFeedback(res.message);
+        setSelected([]);
+      } catch (err) {
+        setError(apiErrorMessage(err));
+      }
+    }
+  };
 
   const toggleCheckIn = (guest: Guest) => {
     setError(null);
@@ -350,6 +372,15 @@ export function GuestsTab({
                 <ScanLine className="h-4 w-4" /> Check-in Scanner
               </Button>
             ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={onEraseAll}
+              disabled={guestTotal === 0 || deleteAllGuests.isPending}
+            >
+              <Trash2 className="h-4 w-4" /> Erase All
+            </Button>
             <Button size="sm" onClick={openCreate} disabled={atGuestLimit}>
               <Plus className="h-4 w-4" /> Add Guest
             </Button>

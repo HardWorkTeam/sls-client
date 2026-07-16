@@ -93,6 +93,14 @@ export function useDeleteGuest(weddingId: number) {
   });
 }
 
+export function useDeleteAllGuests(weddingId: number) {
+  const invalidate = useInvalidateGuests(weddingId);
+  return useMutation({
+    mutationFn: () => guestService.removeAll(weddingId),
+    onSuccess: invalidate,
+  });
+}
+
 export function useImportGuests(weddingId: number) {
   const invalidate = useInvalidateGuests(weddingId);
   return useMutation({
