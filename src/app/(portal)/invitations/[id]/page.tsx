@@ -110,6 +110,177 @@ function TextInput({
   );
 }
 
+// ── Schedule event inline form ────────────────────────────────────────────────
+// Extracted as a component so it can be rendered both above the list (create
+// mode) and inline inside the list (edit mode, replacing the row being edited).
+interface ScheduleEventFormProps {
+  isEdit: boolean;
+  category: string; onCategoryChange: (v: string) => void;
+  time: string; onTimeChange: (v: string) => void;
+  dayIdx: string; onDayIdxChange: (v: string) => void;
+  weddingDays: WeddingDay[];
+  title: string; onTitleChange: (v: string) => void;
+  location: string; onLocationChange: (v: string) => void;
+  mapsLink: string; onMapsLinkChange: (v: string) => void;
+  isPublic: boolean; onIsPublicChange: (v: boolean) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  isPending: boolean;
+}
+
+function ScheduleEventForm({
+  isEdit,
+  category, onCategoryChange,
+  time, onTimeChange,
+  dayIdx, onDayIdxChange,
+  weddingDays,
+  title, onTitleChange,
+  location, onLocationChange,
+  mapsLink, onMapsLinkChange,
+  isPublic, onIsPublicChange,
+  onCancel,
+  onSave,
+  isPending,
+}: ScheduleEventFormProps) {
+  const inputCls = "mt-0.5 w-full rounded-md border border-stone-200 bg-white p-1.5 text-xs outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/30";
+  const labelCls = "text-[10px] font-semibold uppercase tracking-widest text-stone-500";
+
+  return (
+    <div
+      className={`space-y-2.5 rounded-lg border-2 p-3 shadow-sm transition-all ${
+        isEdit
+          ? "border-emerald-300 bg-emerald-50/30"
+          : "border-sky-200 bg-sky-50/20"
+      }`}
+    >
+      {/* Form header — clear label for create vs edit */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isEdit ? (
+            <Pencil className="h-3 w-3 text-emerald-600" />
+          ) : (
+            <Plus className="h-3 w-3 text-sky-600" />
+          )}
+          <span
+            className={`text-[10px] font-bold uppercase tracking-widest ${
+              isEdit ? "text-emerald-700" : "text-sky-700"
+            }`}
+          >
+            {isEdit ? "Editing Event" : "New Schedule Event"}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-200 hover:text-stone-600"
+          aria-label="Close form"
+        >
+          <span className="text-xs font-bold">✕</span>
+        </button>
+      </div>
+
+      {/* Title — most important, comes first */}
+      <div>
+        <label className={labelCls}>Title</label>
+        <input
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="e.g. Wedding Ceremony"
+          autoFocus
+          className={inputCls}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className={labelCls}>Category</label>
+          <select value={category} onChange={(e) => onCategoryChange(e.target.value)} className={inputCls}>
+            <option value="ceremony">Ceremony</option>
+            <option value="reception">Reception</option>
+            <option value="engagement">Engagement</option>
+            <option value="after_party">After Party</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Time</label>
+          <input type="time" value={time} onChange={(e) => onTimeChange(e.target.value)} className={inputCls} />
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>Wedding Day</label>
+        <select value={dayIdx} onChange={(e) => onDayIdxChange(e.target.value)} className={inputCls}>
+          {weddingDays.map((day, i) => (
+            <option key={i} value={i}>
+              ថ្ងៃទី{i + 1} · Day {i + 1}{day.date ? ` — ${formatDayOption(day.date)}` : " (no date set)"}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className={labelCls}>Location</label>
+        <input
+          value={location}
+          onChange={(e) => onLocationChange(e.target.value)}
+          placeholder="Venue or address"
+          className={inputCls}
+        />
+      </div>
+
+      <div>
+        <label className={labelCls}>Google Maps Link</label>
+        <input
+          value={mapsLink}
+          onChange={(e) => onMapsLinkChange(e.target.value)}
+          placeholder="https://maps.google.com/…"
+          className={inputCls}
+        />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          id={isEdit ? "evt-public-edit" : "evt-public-new"}
+          type="checkbox"
+          checked={isPublic}
+          onChange={(e) => onIsPublicChange(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-stone-300 text-emerald-600"
+        />
+        <label
+          htmlFor={isEdit ? "evt-public-edit" : "evt-public-new"}
+          className={labelCls}
+        >
+          Visible on invitation
+        </label>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-2 border-t border-stone-200/60 pt-2.5">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5 text-xs font-semibold text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isPending || !title.trim()}
+          className={`rounded-md px-4 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-50 ${
+            isEdit
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-sky-600 hover:bg-sky-700"
+          }`}
+        >
+          {isPending ? "Saving…" : isEdit ? "Update Event" : "Add Event"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function InvitationEditPage() {
   const params = useParams();
@@ -694,148 +865,140 @@ export default function InvitationEditPage() {
                 <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
                   Schedule Events
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (showEventForm) {
-                      setShowEventForm(false);
-                    } else {
-                      openEventForm();
-                    }
-                  }}
-                  className="flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200"
-                >
-                  <Plus className="h-3 w-3" /> Add Schedule
-                </button>
+                {/* Show Add only when NOT already in "new" mode */}
+                {!(showEventForm && evtId === null) ? (
+                  <button
+                    type="button"
+                    onClick={() => openEventForm()}
+                    className="flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-700 ring-1 ring-emerald-200 transition-colors hover:bg-emerald-100"
+                  >
+                    <Plus className="h-3 w-3" /> Add Event
+                  </button>
+                ) : null}
               </div>
 
               {(timelineEvents ?? []).length === 0 && !showEventForm ? (
-                <p className="text-xs text-stone-400">No schedule events yet.</p>
-              ) : null}
-
-              <div className="space-y-1">
-                {(timelineEvents ?? []).map((evt) => (
-                  <div key={evt.id}
-                    className="flex items-start justify-between rounded-md border border-stone-100 bg-stone-50 px-2.5 py-2">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-stone-800">{evt.title}</p>
-                      <p className="text-[10px] capitalize text-stone-400">
-                        {dayNumberFor(evt.starts_at) ? `Day ${dayNumberFor(evt.starts_at)} · ` : ""}
-                        {evt.category}
-                        {evt.starts_at ? ` · ${new Date(evt.starts_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
-                        {evt.location ? ` · ${evt.location}` : ""}
-                      </p>
-                      {evt.google_map_link ? (
-                        <a href={evt.google_map_link} target="_blank" rel="noreferrer"
-                          className="text-[10px] text-emerald-600 hover:underline">
-                          🗺️ Map link
-                        </a>
-                      ) : null}
-                    </div>
-                    <div className="ml-2 flex shrink-0 items-center">
-                      <button
-                        type="button"
-                        onClick={() => openEventForm(evt)}
-                        className="p-1 text-stone-300 hover:text-stone-600"
-                        aria-label="Edit"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (
-                            await confirm({
-                              title: `Delete "${evt.title}"?`,
-                              description:
-                                "This timeline event will be permanently removed.",
-                            })
-                          ) {
-                            deleteTimelineEvent.mutate(evt.id);
-                          }
-                        }}
-                        className="p-1 text-stone-300 hover:text-red-500"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {showEventForm ? (
-                <div className="mt-2 space-y-2 rounded-md border border-stone-200 bg-white p-2.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Category</label>
-                      <select value={evtCategory} onChange={(e) => setEvtCategory(e.target.value)}
-                        className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400">
-                        <option value="ceremony">Ceremony</option>
-                        <option value="reception">Reception</option>
-                        <option value="engagement">Engagement</option>
-                        <option value="after_party">After Party</option>
-                        <option value="custom">Custom</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Time</label>
-                      <input type="time" value={evtTime} onChange={(e) => setEvtTime(e.target.value)}
-                        className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Wedding Day</label>
-                    <select
-                      value={evtDayIdx}
-                      onChange={(e) => setEvtDayIdx(e.target.value)}
-                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400"
-                    >
-                      {weddingDays.map((day, i) => (
-                        <option key={i} value={i}>
-                          ថ្ងៃទី{i + 1} · Day {i + 1}{day.date ? ` — ${formatDayOption(day.date)}` : " (no date set)"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Title</label>
-                    <input value={evtTitle} onChange={(e) => setEvtTitle(e.target.value)}
-                      placeholder="e.g. Wedding Ceremony"
-                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Location</label>
-                    <input value={evtLocation} onChange={(e) => setEvtLocation(e.target.value)}
-                      placeholder="Venue or address"
-                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Google Maps Link</label>
-                    <input value={evtMapsLink} onChange={(e) => setEvtMapsLink(e.target.value)}
-                      placeholder="https://maps.google.com/…"
-                      className="mt-0.5 w-full rounded-md border border-stone-200 bg-stone-50 p-1.5 text-xs outline-none focus:border-emerald-400" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input id="evt-public" type="checkbox" checked={evtIsPublic}
-                      onChange={(e) => setEvtIsPublic(e.target.checked)}
-                      className="h-3.5 w-3.5" />
-                    <label htmlFor="evt-public" className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">
-                      Visible on invitation
-                    </label>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowEventForm(false)}
-                      className="rounded-md bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-200">
-                      Cancel
-                    </button>
-                    <button type="button" onClick={handleSaveEvent}
-                      disabled={createTimelineEvent.isPending || updateTimelineEvent.isPending || !evtTitle.trim()}
-                      className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
-                      {createTimelineEvent.isPending || updateTimelineEvent.isPending ? "Saving…" : "Save Event"}
-                    </button>
-                  </div>
+                <div className="flex flex-col items-center gap-2 rounded-lg border-2 border-dashed border-stone-200 py-6">
+                  <p className="text-xs text-stone-400">No schedule events yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => openEventForm()}
+                    className="flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white transition-colors hover:bg-emerald-700"
+                  >
+                    <Plus className="h-3 w-3" /> Add your first event
+                  </button>
                 </div>
               ) : null}
+
+              {/* New event form — appears above the list */}
+              {showEventForm && evtId === null ? (
+                <ScheduleEventForm
+                  isEdit={false}
+                  category={evtCategory} onCategoryChange={setEvtCategory}
+                  time={evtTime} onTimeChange={setEvtTime}
+                  dayIdx={evtDayIdx} onDayIdxChange={setEvtDayIdx}
+                  weddingDays={weddingDays}
+                  title={evtTitle} onTitleChange={setEvtTitle}
+                  location={evtLocation} onLocationChange={setEvtLocation}
+                  mapsLink={evtMapsLink} onMapsLinkChange={setEvtMapsLink}
+                  isPublic={evtIsPublic} onIsPublicChange={setEvtIsPublic}
+                  onCancel={() => setShowEventForm(false)}
+                  onSave={handleSaveEvent}
+                  isPending={createTimelineEvent.isPending}
+                />
+              ) : null}
+
+              <div className="space-y-1.5">
+                {(timelineEvents ?? []).map((evt) => {
+                  const isEditing = showEventForm && evtId === evt.id;
+
+                  /* When this row is being edited, replace it with the inline form */
+                  if (isEditing) {
+                    return (
+                      <ScheduleEventForm
+                        key={evt.id}
+                        isEdit
+                        category={evtCategory} onCategoryChange={setEvtCategory}
+                        time={evtTime} onTimeChange={setEvtTime}
+                        dayIdx={evtDayIdx} onDayIdxChange={setEvtDayIdx}
+                        weddingDays={weddingDays}
+                        title={evtTitle} onTitleChange={setEvtTitle}
+                        location={evtLocation} onLocationChange={setEvtLocation}
+                        mapsLink={evtMapsLink} onMapsLinkChange={setEvtMapsLink}
+                        isPublic={evtIsPublic} onIsPublicChange={setEvtIsPublic}
+                        onCancel={() => setShowEventForm(false)}
+                        onSave={handleSaveEvent}
+                        isPending={updateTimelineEvent.isPending}
+                      />
+                    );
+                  }
+
+                  /* Normal read-only row */
+                  return (
+                    <div key={evt.id}
+                      className={`group flex items-start justify-between rounded-lg border px-3 py-2.5 transition-colors ${
+                        showEventForm
+                          ? "border-stone-100 bg-stone-50/50 opacity-60"
+                          : "border-stone-100 bg-stone-50 hover:border-stone-200 hover:bg-white"
+                      }`}>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-block rounded bg-stone-200/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-stone-500">
+                            {evt.category.replace("_", " ")}
+                          </span>
+                          {!evt.is_public ? (
+                            <span className="inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-600">
+                              Hidden
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-1 text-xs font-semibold text-stone-800">{evt.title}</p>
+                        <p className="mt-0.5 text-[10px] text-stone-400">
+                          {dayNumberFor(evt.starts_at) ? `Day ${dayNumberFor(evt.starts_at)}` : ""}
+                          {evt.starts_at ? `${dayNumberFor(evt.starts_at) ? " · " : ""}${new Date(evt.starts_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
+                          {evt.location ? ` · ${evt.location}` : ""}
+                        </p>
+                        {evt.google_map_link ? (
+                          <a href={evt.google_map_link} target="_blank" rel="noreferrer"
+                            className="mt-0.5 inline-block text-[10px] text-emerald-600 hover:underline">
+                            🗺️ Map link
+                          </a>
+                        ) : null}
+                      </div>
+                      <div className="ml-2 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => openEventForm(evt)}
+                          className="rounded-md p-1.5 text-stone-400 transition-colors hover:bg-stone-200 hover:text-stone-700"
+                          aria-label="Edit event"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (
+                              await confirm({
+                                title: `Delete "${evt.title}"?`,
+                                description:
+                                  "This timeline event will be permanently removed.",
+                              })
+                            ) {
+                              deleteTimelineEvent.mutate(evt.id);
+                            }
+                          }}
+                          className="rounded-md p-1.5 text-stone-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          aria-label="Delete event"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </Accordion>
 
