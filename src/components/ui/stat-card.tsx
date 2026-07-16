@@ -54,8 +54,8 @@ export function DualCurrencyValue({
   khr: number;
   formatMoney: (amount: number, currency: string) => string;
 }) {
-  const hasUsd = usd > 0;
-  const hasKhr = khr > 0;
+  const hasUsd = usd !== 0;
+  const hasKhr = khr !== 0;
 
   if (!hasUsd && !hasKhr) {
     return <span className="text-xl lg:text-2xl">$0.00</span>;

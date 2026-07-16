@@ -216,7 +216,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         const expensesKhr = expenseSummary?.total_amount_khr ?? 0;
         const netUsd = incomeUsd - expensesUsd;
         const netKhr = incomeKhr - expensesKhr;
-        const isSurplus = netUsd >= 0 || netKhr >= 0;
+        const isLoss = netUsd < 0 || netKhr < 0;
 
         return (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -244,20 +244,20 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               icon={TrendingDown}
               accent="rose"
             />
-            <div className={`flex items-center gap-4 rounded-lg border p-5 ${isSurplus ? "border-emerald-100 bg-emerald-50" : "border-rose-100 bg-rose-50"}`}>
-              <div className={`rounded-lg p-2.5 ${isSurplus ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+            <div className={`flex items-center gap-4 rounded-lg border p-5 ${isLoss ? "border-rose-100 bg-rose-50" : "border-emerald-100 bg-emerald-50"}`}>
+              <div className={`rounded-lg p-2.5 ${isLoss ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
                 <DollarSign className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-zinc-500">Net Income</p>
-                <div className={`text-2xl font-semibold ${isSurplus ? "text-emerald-700" : "text-rose-700"}`}>
+                <p className="text-sm text-zinc-500">{isLoss ? "Net Loss" : "Net Profit"}</p>
+                <div className={`text-2xl font-semibold ${isLoss ? "text-rose-700" : "text-emerald-700"}`}>
                   <DualCurrencyValue
                     usd={netUsd}
                     khr={netKhr}
                     formatMoney={formatMoney}
                   />
                 </div>
-                <p className="text-xs text-zinc-400">{isSurplus ? "surplus" : "loss"}</p>
+                <p className="text-xs text-zinc-400">{isLoss ? "loss / deficit" : "surplus"}</p>
               </div>
             </div>
           </div>
