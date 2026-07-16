@@ -20,7 +20,7 @@ export function ImageUpload({
   onChange,
   placeholder = "Paste image URL…",
   accept = "image/*",
-  isPublic = false,
+  isPublic = true,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
