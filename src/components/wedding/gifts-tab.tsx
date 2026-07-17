@@ -23,10 +23,19 @@ import {
 } from "@/hooks/use-gifts";
 import { useCreateGuest, useGuests } from "@/hooks/use-guests";
 import { apiErrorMessage } from "@/lib/api";
-import type { Gift } from "@/types/api";
+import type { Gift, Guest } from "@/types/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
-import { Gift as GiftIcon, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  Gift as GiftIcon,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 const GIFT_TYPE_LABELS: Record<string, string> = {
@@ -54,6 +63,145 @@ const EMPTY_FORM: GiftForm = {
   note: "",
   new_guest_name: "",
 };
+
+function GuestPicker({
+  id,
+  value,
+  guests,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  guests: Guest[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const selectedGuest = guests.find((guest) => String(guest.id) === value);
+  const selectedLabel =
+    value === "new"
+      ? "+ Create new guest"
+      : selectedGuest?.name ?? "Anonymous / not in list";
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredGuests = normalizedQuery
+    ? guests.filter((guest) =>
+        guest.name.toLocaleLowerCase().includes(normalizedQuery),
+      )
+    : guests;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () =>
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
+  const select = (nextValue: string) => {
+    onChange(nextValue);
+    setQuery("");
+    setOpen(false);
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        id={id}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((current) => !current);
+          requestAnimationFrame(() => searchRef.current?.focus());
+        }}
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-1 text-left text-sm text-zinc-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+      >
+        <span className="truncate">{selectedLabel}</span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-zinc-500" />
+      </button>
+
+      {open ? (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-zinc-200 bg-white p-1.5 shadow-lg">
+          <div className="relative mb-1.5">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <Input
+              ref={searchRef}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setOpen(false);
+              }}
+              placeholder="Search guest by name..."
+              aria-label="Search guest by name"
+              className="pl-8"
+            />
+          </div>
+          <div role="listbox" className="max-h-52 overflow-y-auto overscroll-contain">
+            {!normalizedQuery ? (
+              <GuestPickerOption
+                label="Anonymous / not in list"
+                selected={value === ""}
+                onClick={() => select("")}
+              />
+            ) : null}
+            {filteredGuests.map((guest) => (
+              <GuestPickerOption
+                key={guest.id}
+                label={guest.name}
+                selected={value === String(guest.id)}
+                onClick={() => select(String(guest.id))}
+              />
+            ))}
+            {filteredGuests.length === 0 ? (
+              <p className="px-3 py-4 text-center text-sm text-zinc-500">
+                No guests found.
+              </p>
+            ) : null}
+            {!normalizedQuery ? (
+              <GuestPickerOption
+                label="+ Create new guest"
+                selected={value === "new"}
+                onClick={() => select("new")}
+              />
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function GuestPickerOption({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected}
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm text-zinc-800 hover:bg-emerald-50"
+    >
+      <span className="truncate">{label}</span>
+      {selected ? <Check className="h-4 w-4 shrink-0 text-emerald-600" /> : null}
+    </button>
+  );
+}
 
 export function GiftsTab({ weddingId }: { weddingId: number }) {
   const [giftType, setGiftType] = useState("");
@@ -296,15 +444,17 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
       >
         <FormField label="Guest">
           {(field) => (
-            <Select {...field} {...form.register("guest_id")}>
-              <option value="">Anonymous / not in list</option>
-              {(guestsPage?.data ?? []).map((guest) => (
-                <option key={guest.id} value={guest.id}>
-                  {guest.name}
-                </option>
-              ))}
-              <option value="new">+ Create new guest</option>
-            </Select>
+            <GuestPicker
+              id={field.id}
+              value={watchGuestId}
+              guests={guestsPage?.data ?? []}
+              onChange={(value) =>
+                form.setValue("guest_id", value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
           )}
         </FormField>
 
