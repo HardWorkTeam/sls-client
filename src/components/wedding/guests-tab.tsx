@@ -498,8 +498,8 @@ export function GuestsTab({
       ) : null}
 
       {selected.length > 0 || isAllMatchingSelected ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5">
-          <div className="flex items-center gap-2 text-sm text-emerald-900">
+        <div className="flex flex-col items-stretch gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-emerald-900">
             <span className="font-semibold">
               {isAllMatchingSelected
                 ? `All ${guestTotal} guests selected`
@@ -528,11 +528,11 @@ export function GuestsTab({
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:w-auto">
             {(invitations ?? []).length > 0 ? (
               <>
                 <Select
-                  className="h-8 w-52 text-xs"
+                  className="h-8 min-w-0 w-full text-xs sm:w-52"
                   value={bulkInvitationId}
                   onChange={(event) => setBulkInvitationId(event.target.value)}
                 >
@@ -556,7 +556,7 @@ export function GuestsTab({
             <Button
               size="sm"
               variant="outline"
-              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="col-span-2 w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 sm:w-auto"
               onClick={onDeleteSelected}
               disabled={deleteAllGuests.isPending}
             >
