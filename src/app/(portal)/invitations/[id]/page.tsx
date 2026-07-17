@@ -10,8 +10,10 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageLoader } from "@/components/ui/spinner";
+import { Select } from "@/components/ui/select";
 import { TemplatePicker } from "@/components/wedding/TemplatePicker";
 import { useTemplates } from "@/hooks/use-admin";
+import { useAlbums } from "@/hooks/use-gallery";
 import {
   useInvitations,
   usePublishInvitation,
@@ -289,6 +291,7 @@ export default function InvitationEditPage() {
 
   const { wedding, isLoading: weddingLoading } = useMyWedding();
   const { data: invitations, isLoading: invLoading } = useInvitations(wedding?.id ?? 0);
+  const { data: albums, isLoading: albumsLoading } = useAlbums(wedding?.id ?? 0);
   const { data: templates } = useTemplates();
   const updateInvitation = useUpdateInvitation(wedding?.id ?? 0);
   const updateWedding = useUpdateWedding(wedding?.id ?? 0);
@@ -318,6 +321,7 @@ export default function InvitationEditPage() {
 
   // Gallery URLs (stored in invitation settings)
   const [gallery, setGallery] = useState<string[]>([]);
+  const [galleryAlbumId, setGalleryAlbumId] = useState("");
 
   // ── Couple info (stored in invitation settings) ───────────────────────────
   const [groomNameKh, setGroomNameKh] = useState("");
@@ -413,6 +417,11 @@ export default function InvitationEditPage() {
       setBrideMotherEn(ext.bride.motherEn ?? "");
     }
   }, [invitation]);
+
+  useEffect(() => {
+    if (galleryAlbumId || !albums?.length) return;
+    setGalleryAlbumId(String(albums[0].id));
+  }, [albums, galleryAlbumId]);
 
   useEffect(() => {
     if (!wedding) return;
@@ -1033,6 +1042,35 @@ export default function InvitationEditPage() {
           {/* 8. Gallery */}
           <Accordion title="8. Gallery (Photos)">
             <div className="space-y-4">
+              <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                <Label htmlFor="gallery-album">Upload photos to album</Label>
+                <Select
+                  id="gallery-album"
+                  className="mt-1.5"
+                  value={galleryAlbumId}
+                  onChange={(event) => setGalleryAlbumId(event.target.value)}
+                  disabled={albumsLoading || !albums?.length}
+                >
+                  <option value="">
+                    {albumsLoading
+                      ? "Loading albums…"
+                      : albums?.length
+                        ? "Select an album"
+                        : "No albums available"}
+                  </option>
+                  {albums?.map((album) => (
+                    <option key={album.id} value={album.id}>
+                      {album.name}{album.is_public ? "" : " (Private)"}
+                    </option>
+                  ))}
+                </Select>
+                {!albumsLoading && !albums?.length && (
+                  <p className="mt-2 text-xs text-amber-700">
+                    Create an album in Gallery before uploading invitation photos.
+                  </p>
+                )}
+              </div>
+
               {gallery.map((url, i) => (
                 <div key={i} className="relative rounded-lg border border-stone-200 bg-stone-50/50 p-3">
                   <button type="button" onClick={() => removeGalleryItem(i)}
@@ -1045,12 +1083,15 @@ export default function InvitationEditPage() {
                     value={url}
                     onChange={(v) => updateGalleryItem(i, v)}
                     isPublic={true}
+                    albumId={galleryAlbumId ? Number(galleryAlbumId) : undefined}
+                    uploadDisabled={!galleryAlbumId}
                     placeholder="https://… or upload"
                   />
                 </div>
               ))}
               <button type="button" onClick={addGalleryItem}
-                className="w-full rounded-md bg-stone-100 py-2 text-xs font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200">
+                disabled={!galleryAlbumId}
+                className="w-full rounded-md bg-stone-100 py-2 text-xs font-bold uppercase tracking-widest text-stone-600 hover:bg-stone-200 disabled:cursor-not-allowed disabled:opacity-50">
                 + Add Photo
               </button>
             </div>

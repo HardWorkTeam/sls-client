@@ -12,6 +12,8 @@ interface ImageUploadProps {
   placeholder?: string;
   accept?: string;
   isPublic?: boolean;
+  albumId?: number;
+  uploadDisabled?: boolean;
 }
 
 export function ImageUpload({
@@ -21,6 +23,8 @@ export function ImageUpload({
   placeholder = "Paste image URL…",
   accept = "image/*",
   isPublic = true,
+  albumId,
+  uploadDisabled = false,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -30,6 +34,10 @@ export function ImageUpload({
   const MAX_BYTES = 50 * 1024 * 1024; // 50 MB — matches backend rule
 
   const handleFile = async (file: File) => {
+    if (uploadDisabled) {
+      setError("Select an album before uploading.");
+      return;
+    }
     setError(null);
     setUploading(true);
     try {
@@ -39,7 +47,10 @@ export function ImageUpload({
         setUploading(false);
         return;
       }
-      const item = await galleryService.upload(weddingId, processedFile, { is_public: isPublic });
+      const item = await galleryService.upload(weddingId, processedFile, {
+        album_id: albumId,
+        is_public: isPublic,
+      });
       onChange(item.url);
     } catch {
       setError("Upload failed — check file type or size.");
@@ -56,6 +67,7 @@ export function ImageUpload({
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (uploadDisabled) return;
     const file = e.dataTransfer.files?.[0];
     if (file) handleFile(file);
   };
@@ -71,7 +83,8 @@ export function ImageUpload({
           <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100">
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
+              onClick={() => !uploadDisabled && inputRef.current?.click()}
+              disabled={uploadDisabled}
               className="flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-semibold text-stone-800 shadow hover:bg-white"
             >
               <Pencil className="h-3 w-3" />
@@ -91,7 +104,7 @@ export function ImageUpload({
         <div
           onDrop={onDrop}
           onDragOver={(e) => e.preventDefault()}
-          onClick={() => !uploading && inputRef.current?.click()}
+          onClick={() => !uploading && !uploadDisabled && inputRef.current?.click()}
           className="flex w-full cursor-pointer flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 transition hover:border-emerald-300 hover:bg-emerald-50/40"
           style={{ height: 120 }}
         >
@@ -146,7 +159,7 @@ export function ImageUpload({
             </button>
             <button
               type="button"
-              disabled={uploading}
+              disabled={uploading || uploadDisabled}
               onClick={() => inputRef.current?.click()}
               className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-stone-500 transition hover:bg-stone-50 hover:text-stone-800 disabled:opacity-40"
             >
