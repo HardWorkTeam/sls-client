@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2, Wallet, Pencil } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -88,7 +88,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (expense: Expense) => {
+  const openEditDialog = useCallback((expense: Expense) => {
     setError(null);
     setEditingExpense(expense);
     form.reset({
@@ -102,7 +102,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
       note: expense.note ?? "",
     });
     setDialogOpen(true);
-  };
+  }, [form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
@@ -207,7 +207,7 @@ export function ExpensesTab({ weddingId }: { weddingId: number }) {
         ),
       },
     ],
-    [confirm, removeExpense],
+    [confirm, openEditDialog, removeExpense],
   );
 
   return (

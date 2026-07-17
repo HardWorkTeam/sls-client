@@ -23,31 +23,28 @@ export function GuestQrDialog({
   guest: Guest | null;
   onClose: () => void;
 }) {
-  const [svg, setSvg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [qr, setQr] = useState<{ guestId: number; svg: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!guest) {
-      setSvg(null);
-      return;
-    }
+    if (!guest) return;
     let active = true;
-    setLoading(true);
     guestService
       .qrSvg(weddingId, guest.id)
       .then((markup) => {
         // Sanitize once at the boundary so state never holds untrusted markup;
         // render, print and download all consume the cleaned SVG.
-        if (active) setSvg(sanitizeSvg(markup));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setQr({ guestId: guest.id, svg: sanitizeSvg(markup) });
+        }
       });
     return () => {
       active = false;
     };
   }, [weddingId, guest]);
+
+  const svg = guest && qr?.guestId === guest.id ? qr.svg : null;
+  const loading = guest !== null && svg === null;
 
   const copyCode = async () => {
     if (!guest?.check_in_code) return;

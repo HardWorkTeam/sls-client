@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { apiErrorMessage } from "@/lib/api";
 import { useForgotPassword } from "@/hooks/use-auth";
 
@@ -38,13 +39,16 @@ export default function ForgotPasswordPage() {
 
       <div className="relative z-10 grid h-full grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-6">
         <section
-          className="hidden h-full overflow-hidden rounded-3xl lg:block"
+          className="relative hidden h-full overflow-hidden rounded-3xl lg:block"
           aria-hidden="true"
         >
-          <img
+          <Image
             src={heroImageUrl}
-            alt="login-hero-image"
+            alt=""
+            fill
+            sizes="50vw"
             className="h-full w-full object-cover object-center"
+            priority
           />
         </section>
 

@@ -18,7 +18,7 @@ import {
   useTimeline,
   useUpdateTimelineEvent,
 } from "@/hooks/use-timeline";
-import { useUpdateWedding, useWedding } from "@/hooks/use-weddings";
+import { useUpdateWedding } from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { TimelineEvent } from "@/types/api";
@@ -66,7 +66,6 @@ interface TimelineForm {
 }
 
 export function TimelineTab({ weddingId }: { weddingId: number }) {
-  const { data: wedding } = useWedding(weddingId);
   const { data: invitations } = useInvitations(weddingId);
   const updateInvitation = useUpdateInvitation(weddingId);
   const updateWedding = useUpdateWedding(weddingId);
@@ -100,6 +99,8 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
         }))
       : [];
     if (saved.length > 0) {
+      // The editor intentionally hydrates local draft state from the fetched invitation.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setWeddingDays(saved);
     }
     if (typeof s.main_wedding_day_index === "number") {
@@ -476,4 +477,3 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
     </div>
   );
 }
-

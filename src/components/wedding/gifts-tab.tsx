@@ -26,8 +26,8 @@ import { apiErrorMessage } from "@/lib/api";
 import type { Gift } from "@/types/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { Gift as GiftIcon, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useCallback, useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 
 const GIFT_TYPE_LABELS: Record<string, string> = {
   cash: "Cash",
@@ -75,8 +75,8 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const confirm = useConfirm();
 
   const form = useForm<GiftForm>({ defaultValues: EMPTY_FORM });
-  const watchType = form.watch("gift_type");
-  const watchGuestId = form.watch("guest_id");
+  const watchType = useWatch({ control: form.control, name: "gift_type" });
+  const watchGuestId = useWatch({ control: form.control, name: "guest_id" });
 
   const openDialog = () => {
     setEditingGift(null);
@@ -85,7 +85,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (gift: Gift) => {
+  const openEditDialog = useCallback((gift: Gift) => {
     setError(null);
     setEditingGift(gift);
     form.reset({
@@ -98,7 +98,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
       new_guest_name: "",
     });
     setDialogOpen(true);
-  };
+  }, [form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
@@ -212,7 +212,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         ),
       },
     ],
-    [confirm, removeGift],
+    [confirm, openEditDialog, removeGift],
   );
 
   return (

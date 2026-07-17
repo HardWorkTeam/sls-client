@@ -27,6 +27,7 @@ import {
 } from "@/hooks/use-timeline";
 import { useUpdateWedding } from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
+import type { TimelineEvent } from "@/types/api";
 
 // ── Section keys ─────────────────────────────────────────────────────────────
 const SECTION_KEYS = [
@@ -426,7 +427,7 @@ export default function InvitationEditPage() {
 
   const initWeddingDaysRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!invitation || !wedding) return;
+    if (!invitation) return;
     if (initWeddingDaysRef.current === invitation.id) return;
     initWeddingDaysRef.current = invitation.id;
 
@@ -572,7 +573,7 @@ export default function InvitationEditPage() {
     setShowEventForm(false);
   };
 
-  const openEventForm = (evt?: any) => {
+  const openEventForm = (evt?: TimelineEvent) => {
     if (evt) {
       setEvtId(evt.id);
       setEvtCategory(evt.category);

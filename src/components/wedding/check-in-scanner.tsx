@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Info, Loader2, XCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/api";
@@ -59,8 +59,7 @@ export function CheckInScanner({ weddingId }: { weddingId: number }) {
 
   // Keep the latest handler reachable from the camera callback without
   // re-initialising the scanner on every render.
-  const submitRef = useRef(submitToken);
-  submitRef.current = submitToken;
+  const submitTokenEvent = useEffectEvent(submitToken);
 
   useEffect(() => {
     let scanner: { stop: () => Promise<void>; clear: () => void } | null = null;
@@ -76,7 +75,7 @@ export function CheckInScanner({ weddingId }: { weddingId: number }) {
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 240, height: 240 } },
           (decoded: string) => {
-            void submitRef.current(decoded);
+            void submitTokenEvent(decoded);
           },
           () => {
             // per-frame decode miss — ignored

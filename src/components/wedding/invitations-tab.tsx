@@ -4,7 +4,7 @@ import { Copy, Eye, Plus, QrCode, Send, Trash2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,6 +59,10 @@ export function InvitationsTab({
 
   const createForm = useForm<InvitationForm>({
     defaultValues: { title: "", invitation_template_id: "" },
+  });
+  const selectedTemplateId = useWatch({
+    control: createForm.control,
+    name: "invitation_template_id",
   });
 
   const onCreate = createForm.handleSubmit(async (values) => {
@@ -283,7 +287,7 @@ export function InvitationsTab({
             <Label className="mb-2 block">Template</Label>
             <TemplatePicker
               templates={templates ?? []}
-              value={createForm.watch("invitation_template_id")}
+              value={selectedTemplateId}
               onChange={(id) => createForm.setValue("invitation_template_id", id)}
             />
             {atDesignLimit ? (
