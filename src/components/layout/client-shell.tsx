@@ -3,6 +3,7 @@
 import { PageLoader } from "@/components/ui/spinner";
 import { useLogout, useMe, useSessionRefresh } from "@/hooks/use-auth";
 import { useMyWedding } from "@/hooks/use-my-wedding";
+import { usePlanActivationSync } from "@/hooks/use-subscription";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import type { GatedModule } from "@/types/api";
@@ -92,6 +93,9 @@ export function ClientShell({ children }: { children: ReactNode }) {
 
   useMe();
   useSessionRefresh();
+  // Auto-unlock the portal when an admin confirms this wedding's payment,
+  // without the couple having to refresh the page.
+  usePlanActivationSync(wedding?.id ?? 0);
 
   // Filter the sidebar to what the wedding can actually use. Features unlock
   // only once the plan is PAID (admin-confirmed) — a package that is merely
