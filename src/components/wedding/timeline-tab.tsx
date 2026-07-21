@@ -18,7 +18,6 @@ import {
   useTimeline,
   useUpdateTimelineEvent,
 } from "@/hooks/use-timeline";
-import { useUpdateWedding } from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { TimelineEvent } from "@/types/api";
@@ -68,7 +67,6 @@ interface TimelineForm {
 export function TimelineTab({ weddingId }: { weddingId: number }) {
   const { data: invitations } = useInvitations(weddingId);
   const updateInvitation = useUpdateInvitation(weddingId);
-  const updateWedding = useUpdateWedding(weddingId);
 
   const timeline = useTimeline(weddingId);
   const createEvent = useCreateTimelineEvent(weddingId);
@@ -116,27 +114,20 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
     setError(null);
     const cleanDays = weddingDays.filter((d) => d.date);
     const currentSettings = (invitation?.settings as Record<string, unknown>) ?? {};
-    // Derive the wedding-level date/time from the selected main wedding day
-    // so dashboard widgets, countdowns, and the wedding model stay in sync.
-    const mainDay = cleanDays[mainDayIndex] ?? cleanDays[0];
-
+    // The wedding record's date/time is a fixed anchor (Overview tab) — saving
+    // the invitation's wedding days must NOT overwrite it. The main-day choice
+    // only picks which day shows as primary on the public invitation.
     try {
-      await Promise.all([
-        updateInvitation.mutateAsync({
-          invitationId: invitation.id,
-          payload: {
-            settings: {
-              ...currentSettings,
-              wedding_days: cleanDays,
-              main_wedding_day_index: mainDayIndex,
-            },
+      await updateInvitation.mutateAsync({
+        invitationId: invitation.id,
+        payload: {
+          settings: {
+            ...currentSettings,
+            wedding_days: cleanDays,
+            main_wedding_day_index: mainDayIndex,
           },
-        }),
-        updateWedding.mutateAsync({
-          wedding_date: mainDay?.date || null,
-          wedding_time: mainDay?.time || null,
-        }),
-      ]);
+        },
+      });
       setDaysSavedMsg(true);
       setTimeout(() => setDaysSavedMsg(false), 2500);
     } catch (err) {
@@ -224,10 +215,10 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
               type="button"
               size="sm"
               onClick={handleSaveDays}
-              disabled={updateInvitation.isPending || updateWedding.isPending}
+              disabled={updateInvitation.isPending}
             >
               <Save className="h-3.5 w-3.5" />
-              {updateInvitation.isPending || updateWedding.isPending ? "Saving..." : "Save Days"}
+              {updateInvitation.isPending ? "Saving..." : "Save Days"}
             </Button>
           </div>
         </div>

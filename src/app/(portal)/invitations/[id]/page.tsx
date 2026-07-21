@@ -463,15 +463,14 @@ export default function InvitationEditPage() {
     setSaveState("idle");
     setSaveError("");
     const cleanDays = weddingDays.filter((d) => d.date);
-    // Derive the wedding-level date/time from the selected main wedding day
-    // so dashboard widgets, countdowns, and the wedding model stay in sync.
-    const mainDay = cleanDays[mainDayIndex] ?? cleanDays[0];
+    // The wedding record's date/time is a fixed anchor set at wedding creation
+    // and edited only in the Overview tab — the invitation editor must NOT
+    // overwrite it. Wedding days here drive the invitation's own schedule; the
+    // main-day choice only picks which day shows as primary on the public invite.
     try {
       const currentSettings = (invitation.settings as Record<string, unknown>) ?? {};
       await Promise.all([
         updateWedding.mutateAsync({
-          wedding_date: mainDay?.date || null,
-          wedding_time: mainDay?.time || null,
           ceremony_venue: ceremonyVenue || null,
           reception_venue: receptionVenue || null,
           google_map_link: mapsLink || null,
