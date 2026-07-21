@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, MapPin, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { CalendarClock, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FormDialog, FormField, QueryState, Toolbar } from "@/components/kit";
-import { useInvitations, useUpdateInvitation } from "@/hooks/use-invitations";
+import { useInvitations } from "@/hooks/use-invitations";
 import {
   useCreateTimelineEvent,
   useDeleteTimelineEvent,
@@ -23,7 +23,6 @@ import { formatDateTime } from "@/lib/utils";
 import type { TimelineEvent } from "@/types/api";
 
 type WeddingDay = { date: string; time: string; venue: string };
-const EMPTY_DAY: WeddingDay = { date: "", time: "", venue: "" };
 
 function formatDayOption(date: string): string {
   try {
@@ -66,7 +65,6 @@ interface TimelineForm {
 
 export function TimelineTab({ weddingId }: { weddingId: number }) {
   const { data: invitations } = useInvitations(weddingId);
-  const updateInvitation = useUpdateInvitation(weddingId);
 
   const timeline = useTimeline(weddingId);
   const createEvent = useCreateTimelineEvent(weddingId);
@@ -74,9 +72,11 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
   const { mutate: removeEvent } = useDeleteTimelineEvent(weddingId);
   const confirm = useConfirm();
 
-  const [weddingDays, setWeddingDays] = useState<WeddingDay[]>([EMPTY_DAY]);
-  const [mainDayIndex, setMainDayIndex] = useState<number>(0);
-  const [daysSavedMsg, setDaysSavedMsg] = useState(false);
+  // Wedding days are configured (and the main wedding date is chosen) in the
+  // invitation editor — a wedding can have several invitations, one per day.
+  // Here they are READ-ONLY: they populate the "Wedding Day" picker so each
+  // timeline event can be pinned to a day. This tab never edits them.
+  const [weddingDays, setWeddingDays] = useState<WeddingDay[]>([]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TimelineEvent | null>(null);
@@ -96,44 +96,10 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
           venue: d.venue ?? "",
         }))
       : [];
-    if (saved.length > 0) {
-      // The editor intentionally hydrates local draft state from the fetched invitation.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setWeddingDays(saved);
-    }
-    if (typeof s.main_wedding_day_index === "number") {
-      setMainDayIndex(s.main_wedding_day_index);
-    }
+    // The editor intentionally hydrates local draft state from the fetched invitation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWeddingDays(saved);
   }, [invitation]);
-
-  const updateWeddingDay = (i: number, patch: Partial<WeddingDay>) =>
-    setWeddingDays((days) => days.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
-
-  const handleSaveDays = async () => {
-    if (!invitation) return;
-    setError(null);
-    const cleanDays = weddingDays.filter((d) => d.date);
-    const currentSettings = (invitation?.settings as Record<string, unknown>) ?? {};
-    // The wedding record's date/time is a fixed anchor (Overview tab) — saving
-    // the invitation's wedding days must NOT overwrite it. The main-day choice
-    // only picks which day shows as primary on the public invitation.
-    try {
-      await updateInvitation.mutateAsync({
-        invitationId: invitation.id,
-        payload: {
-          settings: {
-            ...currentSettings,
-            wedding_days: cleanDays,
-            main_wedding_day_index: mainDayIndex,
-          },
-        },
-      });
-      setDaysSavedMsg(true);
-      setTimeout(() => setDaysSavedMsg(false), 2500);
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
-  };
 
   const openCreate = () => {
     setEditing(null);
@@ -195,112 +161,12 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
 
   return (
     <div className="space-y-6">
-      {/* Wedding Program Days Section */}
-      <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
-          <div>
-            <h2 className="text-sm font-bold text-stone-800">Wedding Program Days</h2>
-            <p className="text-xs text-stone-500">Configure multi-day wedding program dates and venues</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setWeddingDays((days) => [...days, EMPTY_DAY])}
-            >
-              <Plus className="h-3.5 w-3.5" /> Add Day
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSaveDays}
-              disabled={updateInvitation.isPending}
-            >
-              <Save className="h-3.5 w-3.5" />
-              {updateInvitation.isPending ? "Saving..." : "Save Days"}
-            </Button>
-          </div>
-        </div>
-
-        {daysSavedMsg && (
-          <p className="text-xs font-semibold text-emerald-600">✓ Wedding days updated successfully!</p>
-        )}
-
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {weddingDays.map((day, i) => (
-            <div
-              key={i}
-              className={`relative space-y-2 rounded-lg border p-3 transition-colors ${
-                mainDayIndex === i
-                  ? "border-emerald-300 bg-emerald-50/50 ring-1 ring-emerald-200"
-                  : "border-stone-200 bg-stone-50/70"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-stone-700">
-                    ថ្ងៃទី{i + 1} · Day {i + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setMainDayIndex(i)}
-                    className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                      mainDayIndex === i
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "bg-stone-200/80 text-stone-600 hover:bg-stone-300"
-                    }`}
-                  >
-                    {mainDayIndex === i ? "★ Main Wedding Date" : "Set as Main Date"}
-                  </button>
-                </div>
-                {weddingDays.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWeddingDays((days) => days.filter((_, idx) => idx !== i));
-                      if (mainDayIndex === i) setMainDayIndex(0);
-                    }}
-                    className="text-stone-400 hover:text-red-500 transition"
-                    aria-label={`Remove day ${i + 1}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-[10px] uppercase text-stone-500">Date</Label>
-                  <Input
-                    type="date"
-                    value={day.date}
-                    onChange={(e) => updateWeddingDay(i, { date: e.target.value })}
-                    className="h-8 bg-white text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[10px] uppercase text-stone-500">Time</Label>
-                  <Input
-                    type="time"
-                    value={day.time}
-                    onChange={(e) => updateWeddingDay(i, { time: e.target.value })}
-                    className="h-8 bg-white text-xs"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="text-[10px] uppercase text-stone-500">Venue (optional)</Label>
-                <Input
-                  value={day.venue}
-                  onChange={(e) => updateWeddingDay(i, { venue: e.target.value })}
-                  placeholder={i === 0 ? "Ceremony venue" : "Reception venue"}
-                  className="h-8 bg-white text-xs"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {weddingDays.length === 0 ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Set your wedding day(s) and main wedding date in the invitation editor
+          (Event Schedule). Once saved, they appear here so you can pin events to a day.
+        </p>
+      ) : null}
 
       {/* Timeline Events Section */}
       <div className="space-y-4">
@@ -435,11 +301,15 @@ export function TimelineTab({ weddingId }: { weddingId: number }) {
           <FormField label="Wedding Day">
             {(field) => (
               <Select {...field} {...form.register("dayIdx")}>
-                {weddingDays.map((day, i) => (
-                  <option key={i} value={i}>
-                    Day {i + 1}{day.date ? ` — ${formatDayOption(day.date)}` : " (no date)"}
-                  </option>
-                ))}
+                {weddingDays.length === 0 ? (
+                  <option value="0">No days configured</option>
+                ) : (
+                  weddingDays.map((day, i) => (
+                    <option key={i} value={i}>
+                      Day {i + 1}{day.date ? ` — ${formatDayOption(day.date)}` : " (no date)"}
+                    </option>
+                  ))
+                )}
               </Select>
             )}
           </FormField>
