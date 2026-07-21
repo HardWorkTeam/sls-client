@@ -1,17 +1,22 @@
 "use client";
 
 import {
+  Ban,
   CheckCircle2,
   DollarSign,
+  FileText,
+  Globe,
   HelpCircle,
+  type LucideIcon,
   Pencil,
+  RotateCcw,
   TrendingDown,
   TrendingUp,
   UserPlus,
   Users,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,6 +62,126 @@ interface InviteForm {
   member_role: string;
 }
 
+type ButtonVariant = ComponentProps<typeof Button>["variant"];
+
+/**
+ * Plain-language meaning of each wedding lifecycle status, shown to the couple
+ * so the status control explains itself rather than being three bare buttons.
+ * Descriptions describe what the status means *for guests* — the thing couples
+ * actually care about (are my invites live? can people RSVP?).
+ */
+const STATUS_META: Record<
+  WeddingStatus,
+  { description: string; icon: LucideIcon; iconWrap: string }
+> = {
+  draft: {
+    description:
+      "Only your team can see this. Your public invitation pages aren't live yet — publish when you're ready to share them with guests.",
+    icon: FileText,
+    iconWrap: "bg-zinc-100 text-zinc-600",
+  },
+  published: {
+    description:
+      "Your invitation pages are live. Guests can open them and RSVP.",
+    icon: Globe,
+    iconWrap: "bg-emerald-100 text-emerald-700",
+  },
+  completed: {
+    description:
+      "The celebration is done. Your invitation pages stay online as a keepsake — you can reopen the wedding later if you need to make changes.",
+    icon: CheckCircle2,
+    iconWrap: "bg-sky-100 text-sky-700",
+  },
+  cancelled: {
+    description:
+      "Your public invitation pages are hidden and guests can no longer RSVP. Nothing is deleted — you can reactivate anytime.",
+    icon: Ban,
+    iconWrap: "bg-red-100 text-red-700",
+  },
+};
+
+/** A status transition offered to the couple, with confirmation copy. */
+interface StatusAction {
+  target: WeddingStatus;
+  label: string;
+  variant: ButtonVariant;
+  icon: LucideIcon;
+  confirmTitle: string;
+  confirmBody: string;
+  confirmCta: string;
+}
+
+const PUBLISH: StatusAction = {
+  target: "published",
+  label: "Publish",
+  variant: "default",
+  icon: Globe,
+  confirmTitle: "Publish this wedding?",
+  confirmBody:
+    "Your invitation pages will go live and guests will be able to open them and RSVP. You can take them offline again by cancelling.",
+  confirmCta: "Publish",
+};
+
+const MARK_COMPLETED: StatusAction = {
+  target: "completed",
+  label: "Mark completed",
+  variant: "secondary",
+  icon: CheckCircle2,
+  confirmTitle: "Mark this wedding as completed?",
+  confirmBody:
+    "Use this after the big day. Your invitation pages stay online as a keepsake, and you can reopen the wedding later if you need to.",
+  confirmCta: "Mark completed",
+};
+
+const CANCEL: StatusAction = {
+  target: "cancelled",
+  label: "Cancel wedding",
+  variant: "destructive",
+  icon: Ban,
+  confirmTitle: "Cancel this wedding?",
+  confirmBody:
+    "Your public invitation pages will immediately go offline and guests won't be able to RSVP. Nothing is deleted — you can reactivate anytime.",
+  confirmCta: "Cancel wedding",
+};
+
+const REOPEN: StatusAction = {
+  target: "published",
+  label: "Reopen",
+  variant: "default",
+  icon: RotateCcw,
+  confirmTitle: "Reopen this wedding?",
+  confirmBody:
+    "This moves the wedding back to Published so you can make changes. Invitation pages stay live for guests.",
+  confirmCta: "Reopen",
+};
+
+const REACTIVATE: StatusAction = {
+  target: "published",
+  label: "Reactivate",
+  variant: "default",
+  icon: RotateCcw,
+  confirmTitle: "Reactivate this wedding?",
+  confirmBody:
+    "Your invitation pages will go live again and guests will be able to RSVP.",
+  confirmCta: "Reactivate",
+};
+
+/** The transitions the couple can take from a given status. */
+function actionsFor(status: WeddingStatus): StatusAction[] {
+  switch (status) {
+    case "draft":
+      return [PUBLISH];
+    case "published":
+      return [MARK_COMPLETED, CANCEL];
+    case "completed":
+      return [REOPEN];
+    case "cancelled":
+      return [REACTIVATE];
+    default:
+      return [];
+  }
+}
+
 export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const { data: dashboard, isLoading } = useWeddingDashboard(wedding.id);
   const { data: members } = useWeddingMembers(wedding.id);
@@ -83,12 +208,19 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
   });
 
   const canManageStatus = hasRole("super_admin", "organizer", "couple");
+  const statusMeta = STATUS_META[wedding.status];
+  const StatusIcon = statusMeta.icon;
+  const statusActions = actionsFor(wedding.status);
+  const [pendingAction, setPendingAction] = useState<StatusAction | null>(null);
 
-  const transition = async (status: WeddingStatus) => {
+  const confirmTransition = async () => {
+    if (!pendingAction) return;
     setError(null);
     try {
-      await changeStatus.mutateAsync(status);
+      await changeStatus.mutateAsync(pendingAction.target);
+      setPendingAction(null);
     } catch (err) {
+      setPendingAction(null);
       setError(apiErrorMessage(err));
     }
   };
@@ -153,29 +285,52 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
 
   return (
     <div className="space-y-5">
-      {canManageStatus ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={openEdit}>
-            <Pencil className="h-4 w-4" /> Edit details
-          </Button>
-          {wedding.status !== "published" ? (
-            <Button size="sm" onClick={() => transition("published")}>
-              Publish
-            </Button>
-          ) : null}
-          {wedding.status === "published" ? (
-            <Button size="sm" variant="secondary" onClick={() => transition("completed")}>
-              Mark Completed
-            </Button>
-          ) : null}
-          {wedding.status !== "cancelled" && wedding.status !== "completed" ? (
-            <Button size="sm" variant="destructive" onClick={() => transition("cancelled")}>
-              Cancel Wedding
-            </Button>
-          ) : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        </div>
-      ) : null}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className={`shrink-0 rounded-lg p-2.5 ${statusMeta.iconWrap}`}>
+                <StatusIcon className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-zinc-900">Wedding status</p>
+                  <Badge variant={statusVariant(wedding.status)}>
+                    <span className="capitalize">{wedding.status}</span>
+                  </Badge>
+                </div>
+                <p className="mt-1 max-w-prose text-sm text-zinc-500">
+                  {statusMeta.description}
+                </p>
+              </div>
+            </div>
+            {canManageStatus ? (
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={openEdit}>
+                  <Pencil className="h-4 w-4" /> Edit details
+                </Button>
+                {statusActions.map((action) => {
+                  const ActionIcon = action.icon;
+                  return (
+                    <Button
+                      key={action.label}
+                      size="sm"
+                      variant={action.variant}
+                      onClick={() => {
+                        setError(null);
+                        setPendingAction(action);
+                      }}
+                    >
+                      <ActionIcon className="h-4 w-4" /> {action.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+          {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+        </CardContent>
+      </Card>
 
       {isLoading || !dashboard ? (
         <PageLoader label="Loading statistics..." />
@@ -391,6 +546,30 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
           ) : null}
         </div>
       </div>
+
+      <Dialog
+        open={pendingAction !== null}
+        onClose={() => setPendingAction(null)}
+        title={pendingAction?.confirmTitle ?? ""}
+        description={pendingAction?.confirmBody}
+      >
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPendingAction(null)}
+            disabled={changeStatus.isPending}
+          >
+            Keep as is
+          </Button>
+          <Button
+            variant={pendingAction?.variant}
+            onClick={confirmTransition}
+            disabled={changeStatus.isPending}
+          >
+            {changeStatus.isPending ? "Working..." : pendingAction?.confirmCta}
+          </Button>
+        </div>
+      </Dialog>
 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="Edit wedding details">
         <form onSubmit={onEdit} className="space-y-3">
