@@ -1,6 +1,7 @@
 ﻿import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { User } from "@/types/api";
+import { clearSessionCookie, writeSessionCookie } from "@/lib/session-cookie";
 
 interface AuthState {
   token: string | null;
@@ -16,9 +17,19 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       token: null,
       user: null,
-      setAuth: (token, user) => set({ token, user }),
-      setUser: (user) => set({ user }),
-      clear: () => set({ token: null, user: null }),
+      setAuth: (token, user) => {
+        // Mirror the signed-in state to the marketing site (separate origin).
+        writeSessionCookie(user?.name ?? "");
+        set({ token, user });
+      },
+      setUser: (user) => {
+        writeSessionCookie(user?.name ?? "");
+        set({ user });
+      },
+      clear: () => {
+        clearSessionCookie();
+        set({ token: null, user: null });
+      },
       hasRole: (...roles) =>
         (get().user?.roles ?? []).some((role) => roles.includes(role.key)),
     }),
