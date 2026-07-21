@@ -1,11 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/ui/confirm-dialog";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { DualCurrencyValue, StatCard } from "@/components/ui/stat-card";
 import {
   DataTable,
   FormDialog,
@@ -14,6 +8,12 @@ import {
   Toolbar,
   type DataTableColumn,
 } from "@/components/kit";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { DualCurrencyValue, StatCard } from "@/components/ui/stat-card";
 import {
   useCreateGift,
   useDeleteGift,
@@ -23,8 +23,8 @@ import {
 } from "@/hooks/use-gifts";
 import { useCreateGuest, useGuests } from "@/hooks/use-guests";
 import { apiErrorMessage } from "@/lib/api";
-import type { Gift, Guest } from "@/types/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
+import type { Gift, Guest } from "@/types/api";
 import {
   Check,
   ChevronDown,
@@ -84,7 +84,7 @@ function GuestPicker({
   const selectedLabel =
     value === "new"
       ? "+ Create new guest"
-      : selectedGuest?.name ?? "Anonymous / not in list";
+      : (selectedGuest?.name ?? "Select or search guest...");
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const filteredGuests = normalizedQuery
     ? guests.filter((guest) =>
@@ -145,14 +145,21 @@ function GuestPicker({
               className="pl-8"
             />
           </div>
-          <div role="listbox" className="max-h-52 overflow-y-auto overscroll-contain">
+          <div
+            role="listbox"
+            className="max-h-52 overflow-y-auto overscroll-contain"
+          >
             {!normalizedQuery ? (
-              <GuestPickerOption
-                label="Anonymous / not in list"
-                selected={value === ""}
-                onClick={() => select("")}
-              />
+              <>
+                <GuestPickerOption
+                  label="+ Create new guest"
+                  selected={value === "new"}
+                  onClick={() => select("new")}
+                />
+                <div className="my-1 border-t border-zinc-100" />
+              </>
             ) : null}
+
             {filteredGuests.map((guest) => (
               <GuestPickerOption
                 key={guest.id}
@@ -161,17 +168,11 @@ function GuestPicker({
                 onClick={() => select(String(guest.id))}
               />
             ))}
+
             {filteredGuests.length === 0 ? (
               <p className="px-3 py-4 text-center text-sm text-zinc-500">
                 No guests found.
               </p>
-            ) : null}
-            {!normalizedQuery ? (
-              <GuestPickerOption
-                label="+ Create new guest"
-                selected={value === "new"}
-                onClick={() => select("new")}
-              />
             ) : null}
           </div>
         </div>
@@ -198,7 +199,9 @@ function GuestPickerOption({
       className="flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-left text-sm text-zinc-800 hover:bg-emerald-50"
     >
       <span className="truncate">{label}</span>
-      {selected ? <Check className="h-4 w-4 shrink-0 text-emerald-600" /> : null}
+      {selected ? (
+        <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+      ) : null}
     </button>
   );
 }
@@ -233,20 +236,23 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     setDialogOpen(true);
   };
 
-  const openEditDialog = useCallback((gift: Gift) => {
-    setError(null);
-    setEditingGift(gift);
-    form.reset({
-      guest_id: gift.guest_id ? String(gift.guest_id) : "",
-      gift_type: gift.gift_type,
-      amount: gift.amount != null ? String(gift.amount) : "",
-      currency: gift.currency || "USD",
-      item_name: gift.item_name ?? "",
-      note: gift.note ?? "",
-      new_guest_name: "",
-    });
-    setDialogOpen(true);
-  }, [form]);
+  const openEditDialog = useCallback(
+    (gift: Gift) => {
+      setError(null);
+      setEditingGift(gift);
+      form.reset({
+        guest_id: gift.guest_id ? String(gift.guest_id) : "",
+        gift_type: gift.gift_type,
+        amount: gift.amount != null ? String(gift.amount) : "",
+        currency: gift.currency || "USD",
+        item_name: gift.item_name ?? "",
+        note: gift.note ?? "",
+        new_guest_name: "",
+      });
+      setDialogOpen(true);
+    },
+    [form],
+  );
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
@@ -316,7 +322,9 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         header: "Note",
         hideBelow: "md",
         className: "max-w-48",
-        cell: (gift) => <p className="truncate text-zinc-600">{gift.note ?? "—"}</p>,
+        cell: (gift) => (
+          <p className="truncate text-zinc-600">{gift.note ?? "—"}</p>
+        ),
       },
       {
         key: "received",
@@ -367,11 +375,19 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     <div className="space-y-4">
       {summary ? (
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <StatCard label="Total Gifts" value={summary.total_gifts} icon={GiftIcon} />
+          <StatCard
+            label="Total Gifts"
+            value={summary.total_gifts}
+            icon={GiftIcon}
+          />
           <StatCard
             label="Total Cash"
             value={
-              <DualCurrencyValue usd={summary.total_cash_amount_usd} khr={summary.total_cash_amount_khr} formatMoney={formatMoney} />
+              <DualCurrencyValue
+                usd={summary.total_cash_amount_usd}
+                khr={summary.total_cash_amount_khr}
+                formatMoney={formatMoney}
+              />
             }
             accent="sky"
           />
@@ -380,7 +396,11 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
             value={`${summary.by_type.cash.count} / ${summary.by_type.bank_transfer.count}`}
             accent="amber"
           />
-          <StatCard label="Gift Items" value={summary.by_type.item.count} accent="rose" />
+          <StatCard
+            label="Gift Items"
+            value={summary.by_type.item.count}
+            accent="rose"
+          />
         </div>
       ) : null}
 
@@ -412,7 +432,8 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         loadingLabel="Loading gifts..."
         empty={{
           title: "No gifts recorded",
-          description: "Track cash gifts, bank transfers and gift items received.",
+          description:
+            "Track cash gifts, bank transfers and gift items received.",
           action: (
             <Button onClick={openDialog}>
               <Plus className="h-4 w-4" /> Record Gift
@@ -439,7 +460,9 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         title={editingGift ? "Edit Gift" : "Record Gift"}
         onSubmit={onSubmit}
         error={error}
-        pending={createGift.isPending || updateGift.isPending || createGuest.isPending}
+        pending={
+          createGift.isPending || updateGift.isPending || createGuest.isPending
+        }
         submitLabel={editingGift ? "Save Changes" : "Save Gift"}
       >
         <FormField label="Guest">
