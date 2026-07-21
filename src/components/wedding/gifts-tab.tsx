@@ -5,6 +5,7 @@ import {
   FormDialog,
   FormField,
   QueryState,
+  SearchInput,
   Toolbar,
   type DataTableColumn,
 } from "@/components/kit";
@@ -208,13 +209,17 @@ function GuestPickerOption({
 
 export function GiftsTab({ weddingId }: { weddingId: number }) {
   const [giftType, setGiftType] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGift, setEditingGift] = useState<Gift | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // `search` holds the settled (already debounced) term — SearchInput owns the
+  // keystroke state, so only the settled value hits the API.
   const gifts = useGifts(weddingId, {
     gift_type: giftType || undefined,
+    search: search || undefined,
     page,
   });
   const { data: summary } = useGiftSummary(weddingId);
@@ -411,6 +416,13 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
           </Button>
         }
       >
+        <SearchInput
+          placeholder="Search by guest name..."
+          onSearch={(query) => {
+            setSearch(query);
+            setPage(1);
+          }}
+        />
         <Select
           className="w-44"
           aria-label="Filter by gift type"

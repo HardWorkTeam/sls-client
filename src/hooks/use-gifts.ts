@@ -12,7 +12,7 @@ export const giftKeys = {
 
 export function useGifts(
   weddingId: number,
-  params: { gift_type?: string; page?: number } = {},
+  params: { gift_type?: string; search?: string; page?: number } = {},
 ) {
   return useQuery({
     queryKey: giftKeys.list(weddingId, params),

@@ -14,7 +14,12 @@ export interface GiftPayload {
 export const giftService = {
   async list(
     weddingId: number,
-    params: { gift_type?: string; page?: number; per_page?: number } = {},
+    params: {
+      gift_type?: string;
+      search?: string;
+      page?: number;
+      per_page?: number;
+    } = {},
   ): Promise<Paginated<Gift>> {
     const { data } = await api.get<Paginated<Gift>>(`/weddings/${weddingId}/gifts`, {
       params,
