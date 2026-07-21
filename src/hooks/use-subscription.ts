@@ -15,7 +15,7 @@ export const subscriptionKeys = {
 };
 
 /** How often to re-check a payment that is awaiting admin confirmation. */
-const AWAITING_POLL_MS = 5_000;
+const AWAITING_POLL_MS = 3_000;
 
 export function useSubscription(weddingId: number) {
   return useQuery({
