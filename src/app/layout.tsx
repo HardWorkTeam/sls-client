@@ -3,6 +3,7 @@ import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Srolanh Couple Portal",
@@ -21,6 +22,7 @@ export default function RootLayout({
           <ConfirmProvider>{children}</ConfirmProvider>
         </QueryProvider>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
