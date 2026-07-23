@@ -41,9 +41,12 @@ export function StatCard({
 }
 
 /**
- * Render USD and KHR amounts as a compact stacked display for StatCard.
- * Shows each currency on its own line with a currency badge.
- * Falls back to a single "$0.00" when both are zero.
+ * Render USD and KHR amounts for a StatCard.
+ *
+ * USD and KHR are tracked as two independent pools (gifts/expenses recorded in
+ * each currency), NOT one amount converted into the other. When both are
+ * present they're joined by a muted "+" so the reader sees two separate totals
+ * that add up — never "$30 = KHR 150,000". Falls back to "$0.00" when empty.
  */
 export function DualCurrencyValue({
   usd,
@@ -69,11 +72,14 @@ export function DualCurrencyValue({
     return <span className="text-xl lg:text-2xl">{formatMoney(khr, "KHR")}</span>;
   }
 
-  // Both currencies — stack them
+  // Both currencies — join with "+" so they read as two separate pools that
+  // sum, not as a USD↔KHR conversion. Wraps on narrow cards with the "+"
+  // leading the second line, keeping the additive meaning clear.
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
       <span className="text-base font-semibold lg:text-lg">{formatMoney(usd, "USD")}</span>
-      <span className="text-sm font-medium text-zinc-600">{formatMoney(khr, "KHR")}</span>
+      <span className="text-sm font-normal text-zinc-400">+</span>
+      <span className="text-base font-semibold lg:text-lg">{formatMoney(khr, "KHR")}</span>
     </div>
   );
 }
