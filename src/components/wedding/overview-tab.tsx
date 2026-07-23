@@ -287,7 +287,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
     <div className="space-y-5">
       <Card>
         <CardContent className="p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-3">
               <div className={`shrink-0 rounded-lg p-2.5 ${statusMeta.iconWrap}`}>
                 <StatusIcon className="h-5 w-5" />
@@ -305,7 +305,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               </div>
             </div>
             {canManageStatus ? (
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={openEdit}>
                   <Pencil className="h-4 w-4" /> Edit details
                 </Button>
