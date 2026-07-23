@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { QueryProvider } from "@/providers/query-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 
@@ -19,6 +20,7 @@ export default function RootLayout({
         <QueryProvider>
           <ConfirmProvider>{children}</ConfirmProvider>
         </QueryProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
