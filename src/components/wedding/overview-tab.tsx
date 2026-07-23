@@ -374,7 +374,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         const isLoss = netUsd < 0 || netKhr < 0;
 
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
               label="Gift Income"
               value={
@@ -400,10 +400,10 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               accent="rose"
             />
             <div className={`flex items-center gap-4 rounded-lg border p-5 ${isLoss ? "border-rose-100 bg-rose-50" : "border-emerald-100 bg-emerald-50"}`}>
-              <div className={`rounded-lg p-2.5 ${isLoss ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+              <div className={`shrink-0 rounded-lg p-2.5 ${isLoss ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
                 <DollarSign className="h-5 w-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-zinc-500">{isLoss ? "Net Loss" : "Net Profit"}</p>
                 <div className={`text-2xl font-semibold ${isLoss ? "text-rose-700" : "text-emerald-700"}`}>
                   <DualCurrencyValue
