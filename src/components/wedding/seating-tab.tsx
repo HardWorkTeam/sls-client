@@ -15,15 +15,14 @@ import {
   useAutoSeat,
   useCreateTable,
   useDeleteTable,
-  useImportTables,
   useSeatingReport,
   useTables,
   useUnassignSeat,
 } from "@/hooks/use-seating";
 import { apiErrorMessage } from "@/lib/api";
 import { seatingService } from "@/services/seating-service";
-import { Download, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { Plus, Trash2, Upload, Wand2, X } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 interface TableForm {
@@ -43,10 +42,8 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   const assignSeat = useAssignSeat(weddingId);
   const unassignSeat = useUnassignSeat(weddingId);
   const autoSeat = useAutoSeat(weddingId);
-  const importTables = useImportTables(weddingId);
   const confirm = useConfirm();
 
-  const fileInput = useRef<HTMLInputElement>(null);
   const [tableDialog, setTableDialog] = useState(false);
   const [assignTableId, setAssignTableId] = useState<number | null>(null);
   const [assignGuestId, setAssignGuestId] = useState("");
@@ -102,17 +99,6 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
     }
   };
 
-  const onImport = async (file: File) => {
-    setError(null);
-    setFeedback(null);
-    try {
-      const result = await importTables.mutateAsync(file);
-      setFeedback(result.message);
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
-  };
-
   const onExport = async () => {
     const blob = await seatingService.exportExcel(weddingId);
     const url = URL.createObjectURL(blob);
@@ -141,25 +127,6 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
           <span />
         )}
         <div className="flex flex-wrap gap-2">
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) onImport(file);
-              event.target.value = "";
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fileInput.current?.click()}
-            disabled={importTables.isPending}
-          >
-            <Download className="h-4 w-4" /> Import Excel
-          </Button>
           <Button variant="outline" size="sm" onClick={onExport}>
             <Upload className="h-4 w-4" /> Export
           </Button>
