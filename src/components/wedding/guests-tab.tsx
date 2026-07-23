@@ -30,7 +30,6 @@ import {
   useCreateGuest,
   useCreateGuestGroup,
   useDeleteAllGuests,
-  useDeleteGuest,
   useDeleteGuestGroup,
   useGuestGroups,
   useGuests,
@@ -53,7 +52,6 @@ import {
   Plus,
   QrCode,
   ScanLine,
-  Send,
   Trash2,
   Upload,
   Users,
@@ -66,9 +64,6 @@ import { CheckInScanner } from "./check-in-scanner";
 import { GuestQrDialog } from "./guest-qr-dialog";
 
 const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
-
-// Public RSVP site base used to build personalized invitation links.
-const RSVP_URL = process.env.NEXT_PUBLIC_RSVP_URL ?? "http://localhost:3002";
 
 const guestSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -85,16 +80,12 @@ type GuestForm = z.infer<typeof guestSchema>;
 export function GuestsTab({
   weddingId,
   guestLimit,
-  canShareInvite = true,
   canCheckIn = true,
 }: {
   weddingId: number;
   // Plan guest cap (null/undefined = unlimited); used to show a banner and
   // disable adding once reached. The API enforces the real limit.
   guestLimit?: number | null;
-  // Whether the plan includes personalized invitation links (the RSVP module).
-  // FREE packages have no RSVP site, so the copy-link action is hidden for them.
-  canShareInvite?: boolean;
   // Whether the plan includes wedding-day QR check-in. When false the scanner,
   // per-guest QR, arrival column and the digital check-in pass are all hidden.
   // The API also 403s the check-in routes for these plans.
@@ -108,9 +99,6 @@ export function GuestsTab({
   const [selected, setSelected] = useState<number[]>([]);
   const [isAllMatchingSelected, setIsAllMatchingSelected] = useState(false);
   const [bulkInvitationId, setBulkInvitationId] = useState("");
-  // Which invitation the "copy link" action uses for guests that have no
-  // invitation of their own assigned. Defaults to the first invitation.
-  const [linkInvitationId, setLinkInvitationId] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -139,7 +127,6 @@ export function GuestsTab({
 
   const createGuest = useCreateGuest(weddingId);
   const updateGuest = useUpdateGuest(weddingId);
-  const deleteGuest = useDeleteGuest(weddingId);
   const deleteAllGuests = useDeleteAllGuests(weddingId);
   const importGuests = useImportGuests(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
@@ -287,46 +274,6 @@ export function GuestsTab({
     );
   };
 
-  // The invitation used as the fallback when a guest has none of their own
-  // assigned. Honours the user's selection, otherwise the first invitation.
-  const fallbackInvitation =
-    (invitations ?? []).find((inv) => String(inv.id) === linkInvitationId) ??
-    invitations?.[0];
-
-  // Copy a personalized invitation link for a guest. Uses the guest's assigned
-  // invitation; when none is set it falls back to the invitation chosen in the
-  // link-source selector (or the first invitation if there's only one).
-  const copyInviteLink = async (guest: Guest) => {
-    setFeedback(null);
-    setError(null);
-    const invitation = guest.invitation ?? fallbackInvitation;
-    const code = invitation?.invitation_code;
-    if (!code) {
-      setError(
-        "Create an invitation first, then you can send a personalized link.",
-      );
-      return;
-    }
-    // Include the guest's short check-in code so their invite shows a personal
-    // "my check-in QR" pass they can present at the door on the wedding day —
-    // only when the plan includes the check-in feature. The code drives both
-    // the QR and the readable text on the pass.
-    const tokenParam =
-      canCheckIn && guest.check_in_code ? `&t=${guest.check_in_code}` : "";
-    const link = `${RSVP_URL}/invite/${code}?to=${encodeURIComponent(guest.name)}${tokenParam}`;
-    const invitationLabel = invitation?.title ?? code;
-    try {
-      await navigator.clipboard.writeText(link);
-      setFeedback(
-        `Invitation link for ${guest.name} (${invitationLabel}) copied to clipboard.`,
-      );
-    } catch {
-      // Clipboard API may be unavailable (e.g. non-secure context) — surface the
-      // link so the user can copy it manually.
-      setError(`Couldn't copy automatically. Link: ${link}`);
-    }
-  };
-
   const openCreateGroup = () => {
     setEditingGroup(null);
     setGroupName("");
@@ -447,20 +394,6 @@ export function GuestsTab({
             </option>
           ))}
         </Select>
-        {canShareInvite && (invitations?.length ?? 0) > 1 ? (
-          <Select
-            className="w-48"
-            title="Invitation used when copying a guest's personalized link"
-            value={fallbackInvitation ? String(fallbackInvitation.id) : ""}
-            onChange={(event) => setLinkInvitationId(event.target.value)}
-          >
-            {(invitations ?? []).map((invitation) => (
-              <option key={invitation.id} value={invitation.id}>
-                Link: {invitation.title ?? invitation.invitation_code}
-              </option>
-            ))}
-          </Select>
-        ) : null}
       </Toolbar>
 
       {guestLimit != null ? (
@@ -715,17 +648,6 @@ export function GuestsTab({
                               <QrCode className="h-4 w-4 text-zinc-600" />
                             </Button>
                           ) : null}
-                          {canShareInvite ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Copy invitation link for ${guest.name}`}
-                              title="Copy personalized invitation link"
-                              onClick={() => copyInviteLink(guest)}
-                            >
-                              <Send className="h-4 w-4 text-emerald-600" />
-                            </Button>
-                          ) : null}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -733,24 +655,6 @@ export function GuestsTab({
                             onClick={() => openEdit(guest)}
                           >
                             <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Delete ${guest.name}`}
-                            onClick={async () => {
-                              if (
-                                await confirm({
-                                  title: `Delete guest "${guest.name}"?`,
-                                  description:
-                                    "The guest and their RSVP/seating assignments will be removed.",
-                                })
-                              ) {
-                                deleteGuest.mutate(guest.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
                       </TableCell>

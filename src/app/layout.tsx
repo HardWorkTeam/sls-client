@@ -3,7 +3,6 @@ import "./globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { QueryProvider } from "@/providers/query-provider";
 import { ConfirmProvider } from "@/components/ui/confirm-dialog";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Srolanh Couple Portal",
