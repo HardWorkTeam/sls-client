@@ -67,10 +67,10 @@ export function FormDialog({
       description={description}
       className={className}
     >
-      <form onSubmit={onSubmit} aria-busy={pending || undefined} className="space-y-3">
+      <form onSubmit={onSubmit} aria-busy={pending || undefined} className="space-y-4">
         {children}
         <FormError error={error} />
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2 pt-3">
           <Button type="button" variant="outline" disabled={pending} onClick={close}>
             {cancelLabel}
           </Button>
