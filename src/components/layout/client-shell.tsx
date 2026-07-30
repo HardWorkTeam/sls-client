@@ -18,11 +18,13 @@ import {
   Mail,
   MailCheck,
   Menu,
+  Phone,
   Settings,
   Users,
   Wallet,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
@@ -127,10 +129,12 @@ export function ClientShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <>
       <div className="flex h-16 items-center gap-2 border-b border-zinc-100 px-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/srolanh-logo.png"
+        <Image
+          src="/srolanh-logo.webp"
           alt="Srolanh — Digital Event Management"
+          width={384}
+          height={256}
+          loading="eager"
           className="h-16 w-auto shrink-0"
         />
         <span className="text-[11px] text-zinc-500">Couple Portal</span>
@@ -158,6 +162,39 @@ export function ClientShell({ children }: { children: ReactNode }) {
         })}
       </nav>
       <div className="border-t border-zinc-100 p-3">
+        <div className="mb-3 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-950">
+          <p className="mb-2 font-semibold">Contact us</p>
+          <div className="space-y-1.5">
+            <a
+              href="tel:098905500"
+              className="flex items-center gap-2 hover:text-emerald-700"
+            >
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              098 905 500
+            </a>
+            <a
+              href="tel:015331814"
+              className="flex items-center gap-2 hover:text-emerald-700"
+            >
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              015 331 814
+            </a>
+            <a
+              href="mailto:sabdaouk21march@gmail.com"
+              className="flex items-center gap-2 break-all hover:text-emerald-700"
+            >
+              <Mail className="h-3.5 w-3.5 shrink-0" />
+              sabdaouk21march@gmail.com
+            </a>
+            <a
+              href="mailto:mrrcvb168@gmail.com"
+              className="flex items-center gap-2 break-all hover:text-emerald-700"
+            >
+              <Mail className="h-3.5 w-3.5 shrink-0" />
+              mrrcvb168@gmail.com
+            </a>
+          </div>
+        </div>
         <div className="mb-2 px-3">
           <p className="truncate text-sm font-medium text-zinc-800">
             {user?.name}
@@ -214,10 +251,12 @@ export function ClientShell({ children }: { children: ReactNode }) {
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/srolanh-logo.png"
+            <Image
+              src="/srolanh-logo.webp"
               alt="Srolanh"
+              width={384}
+              height={256}
+              loading="eager"
               className="h-12 w-auto"
             />
           </button>

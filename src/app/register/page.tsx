@@ -2,14 +2,13 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { AuthHero } from "@/components/layout/auth-hero";
 import { PasswordInput } from "@/components/ui/password-input";
 import { apiErrorMessage } from "@/lib/api";
 import { useRegister } from "@/hooks/use-auth";
 import { useAuthStore } from "@/stores/auth-store";
 
-const heroImageUrl = "/login-hero.jpg";
 const fieldClass =
   "h-11 rounded-[22px] border border-[#a6f4c5] bg-white px-4 text-sm text-[#05603a] outline-none placeholder:text-black/35";
 const labelClass = "text-sm font-bold text-[#05603a]";
@@ -47,28 +46,11 @@ export default function RegisterPage() {
 
   return (
     <main className="relative h-dvh min-h-dvh overflow-hidden bg-[#e8e8e8] p-3 md:p-4 lg:p-5">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat lg:hidden"
-        style={{
-          backgroundImage: `linear-gradient(rgba(232,232,232,0.62), rgba(232,232,232,0.62)), url("${heroImageUrl}")`,
-        }}
-        aria-hidden="true"
-      />
+      <AuthHero />
 
       <div className="relative z-10 grid h-full grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-6">
-        <section
-          className="relative hidden h-full overflow-hidden rounded-3xl lg:block"
-          aria-hidden="true"
-        >
-          <Image
-            src={heroImageUrl}
-            alt=""
-            fill
-            sizes="50vw"
-            className="h-full w-full object-cover object-center"
-            priority
-          />
-        </section>
+        {/* Spacer: AuthHero is positioned over this column on desktop. */}
+        <section className="hidden lg:block" aria-hidden="true" />
 
         <section className="flex h-full items-center justify-center overflow-y-auto">
           <div className="w-full max-w-[460px] rounded-2xl border border-white/70 bg-white/80 p-4 backdrop-blur-sm md:p-5 lg:border-transparent lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
