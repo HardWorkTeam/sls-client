@@ -976,7 +976,7 @@ export default function InvitationEditPage() {
                           </a>
                         ) : null}
                       </div>
-                      <div className="ml-2 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <div className="ml-2 flex shrink-0 items-center gap-0.5">
                         <button
                           type="button"
                           onClick={() => openEventForm(evt)}
