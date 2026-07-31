@@ -45,9 +45,11 @@ import { guestService } from "@/services/guest-service";
 import type { Guest, GuestGroup } from "@/types/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  Check,
   CheckCircle2,
   Circle,
   Download,
+  Link2,
   Pencil,
   Plus,
   QrCode,
@@ -107,6 +109,9 @@ export function GuestsTab({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [qrGuest, setQrGuest] = useState<Guest | null>(null);
 
+  // Which guest's invite link was just copied (drives the ✓ on their button).
+  const [copiedGuestId, setCopiedGuestId] = useState<number | null>(null);
+
   // Group management state
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<GuestGroup | null>(null);
@@ -162,6 +167,35 @@ export function GuestsTab({
       } catch (err) {
         setError(apiErrorMessage(err));
       }
+    }
+  };
+
+  // One invitation is shared by many guests, so the *personal* link only exists
+  // per guest: the invitation's public URL plus `?to=` (greets them by name on
+  // the invite) and `?t=` (their short check-in code, which powers the "my
+  // check-in QR" pass). Returns null when the guest has no invitation attached.
+  const inviteLinkFor = (guest: Guest) => {
+    const base = guest.invitation?.public_url;
+    if (!base) return null;
+    const query = [`to=${encodeURIComponent(guest.name)}`];
+    if (canCheckIn && guest.check_in_code) {
+      query.push(`t=${encodeURIComponent(guest.check_in_code)}`);
+    }
+    return `${base}${base.includes("?") ? "&" : "?"}${query.join("&")}`;
+  };
+
+  const copyInviteLink = async (guest: Guest) => {
+    const link = inviteLinkFor(guest);
+    if (!link) return;
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedGuestId(guest.id);
+      setTimeout(() => setCopiedGuestId(null), 2000);
+    } catch {
+      // Clipboard API needs a secure context (https / localhost) — show the
+      // link instead so it can still be selected and copied by hand.
+      setError(`Couldn't copy automatically. ${guest.name}'s link: ${link}`);
     }
   };
 
@@ -637,6 +671,21 @@ export function GuestsTab({
                       ) : null}
                       <TableCell>
                         <div className="flex gap-1">
+                          {guest.invitation ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Copy invite link for ${guest.name}`}
+                              title="Copy personal invite link"
+                              onClick={() => copyInviteLink(guest)}
+                            >
+                              {copiedGuestId === guest.id ? (
+                                <Check className="h-4 w-4 text-emerald-600" />
+                              ) : (
+                                <Link2 className="h-4 w-4 text-zinc-600" />
+                              )}
+                            </Button>
+                          ) : null}
                           {canCheckIn ? (
                             <Button
                               variant="ghost"
