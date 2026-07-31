@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { filenameFromContentDisposition } from "@/lib/utils";
 import type { CheckInStats, Guest, GuestGroup, Paginated } from "@/types/api";
 
 export interface GuestListParams {
@@ -71,11 +72,19 @@ export const guestService = {
     return `/weddings/${weddingId}/guests/export`;
   },
 
-  async exportExcel(weddingId: number): Promise<Blob> {
-    const { data } = await api.get(`/weddings/${weddingId}/guests/export`, {
+  // The server names the file after the wedding (name + date), so the download
+  // carries that name through instead of a generic one.
+  async exportExcel(weddingId: number): Promise<{ blob: Blob; filename: string }> {
+    const response = await api.get(`/weddings/${weddingId}/guests/export`, {
       responseType: "blob",
     });
-    return data as Blob;
+    return {
+      blob: response.data as Blob,
+      filename: filenameFromContentDisposition(
+        response.headers["content-disposition"],
+        "guests.xlsx",
+      ),
+    };
   },
 
   async bulkInvite(weddingId: number, guestIds: number[], invitationId: number) {

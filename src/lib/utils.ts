@@ -27,6 +27,31 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Pull the server-chosen download name out of a Content-Disposition header.
+ * Prefers the RFC 5987 `filename*=` form — that is the only one non-ASCII
+ * (e.g. Khmer) wedding names survive — and falls back to the quoted plain
+ * form, then to `fallback` when the header is missing or unreadable.
+ */
+export function filenameFromContentDisposition(
+  header: string | null | undefined,
+  fallback: string,
+): string {
+  if (!header) return fallback;
+
+  const encoded = /filename\*=\s*UTF-8''([^;]+)/i.exec(header);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Malformed percent-encoding — fall through to the plain form below.
+    }
+  }
+
+  const plain = /filename=\s*"?([^";]+)"?/i.exec(header);
+  return plain ? plain[1].trim() : fallback;
+}
+
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   return new Date(value).toLocaleDateString(undefined, {

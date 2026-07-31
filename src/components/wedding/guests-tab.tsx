@@ -272,11 +272,11 @@ export function GuestsTab({
   };
 
   const onExport = async () => {
-    const blob = await guestService.exportExcel(weddingId);
+    const { blob, filename } = await guestService.exportExcel(weddingId);
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "guests.xlsx";
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
   };
