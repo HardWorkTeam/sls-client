@@ -635,7 +635,10 @@ export default function InvitationEditPage() {
   const addGalleryItem = () => setGallery((g) => [...g, ""]);
 
   return (
-    <div className="-m-4 md:-m-6 lg:-m-8 flex overflow-hidden h-[calc(100dvh-4rem)] md:h-dvh">
+    // Fills <main> edge to edge: the negative margins cancel the shell's
+    // padding and the height adds it back (100% is main's content box), so the
+    // editor is exactly as tall as the shell — no viewport math, no dead space.
+    <div className="-m-4 md:-m-6 lg:-m-8 flex overflow-hidden h-[calc(100%+2rem)] md:h-[calc(100%+3rem)] lg:h-[calc(100%+4rem)]">
 
       {/* ── LEFT: scrollable form sidebar ──────────────────────────────────── */}
       <div className="flex h-full w-full flex-col overflow-hidden border-r border-stone-200 bg-white shadow-xl md:w-[450px] md:flex-shrink-0">

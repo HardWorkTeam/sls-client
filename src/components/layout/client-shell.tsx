@@ -214,9 +214,14 @@ export function ClientShell({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-dvh bg-zinc-50">
+    // The shell is pinned to the viewport and scrolling happens inside <main>.
+    // Taking it out of flow is deliberate: <body> is a flex column, so anything
+    // appended to it (analytics nodes, browser-extension wrappers) used to add
+    // its height to the document, letting the whole app scroll up and leaving
+    // dead space below it. Pinned, the app always fills the screen exactly.
+    <div className="fixed inset-0 flex overflow-hidden bg-zinc-50">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
+      <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
         {sidebar}
       </aside>
 
@@ -242,8 +247,8 @@ export function ClientShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-4 md:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 md:hidden">
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
@@ -268,7 +273,9 @@ export function ClientShell({ children }: { children: ReactNode }) {
             Log out
           </button>
         </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );
