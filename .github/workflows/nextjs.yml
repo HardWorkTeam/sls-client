@@ -56,6 +56,10 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
+          # Create and configure the Pages site on its first deployment.
+          # Without this, configure-pages fails with "Get Pages site failed"
+          # when Pages has not yet been enabled in the repository settings.
+          enablement: true
           # Automatically inject basePath in your Next.js configuration file and disable
           # server side image optimization (https://nextjs.org/docs/api-reference/next/image#unoptimized).
           #
