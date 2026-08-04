@@ -7,11 +7,13 @@
  * the shared parent domain holding only the couple's display name. Cookies
  * ignore the port, so this is shared across localhost:3001 ↔ localhost:3103 in
  * dev, and across subdomains in prod when scoped to the parent domain.
+ * Separate *.vercel.app URLs cannot share a parent cookie — the marketing site
+ * falls back to GET /api/session-marker on the portal instead (see sls-web).
  *
  * Never put the token or anything sensitive here — this cookie is readable by
  * client-side JS on every page of the shared domain by design.
  */
-const COOKIE_NAME = "sls_session";
+export const SESSION_COOKIE_NAME = "sls_session";
 
 // In prod set this to the shared parent domain (e.g. ".srolanh.com") in both
 // apps' env. Leave empty in dev so the cookie stays a host cookie on
@@ -25,20 +27,25 @@ const MAX_AGE_SECONDS = 60 * 60 * 24;
 
 /** Shared attributes so the browser matches on write AND delete. */
 function attributes(): string {
-  let attrs = "Path=/; SameSite=Lax";
+  let attrs = "Path=/";
   if (COOKIE_DOMAIN) attrs += `; Domain=${COOKIE_DOMAIN}`;
   if (typeof location !== "undefined" && location.protocol === "https:") {
-    attrs += "; Secure";
+    // None+Secure lets sls-web on a sibling *.vercel.app host read session via
+    // credentialed fetch to /api/session-marker. Lax would not send the cookie
+    // on that cross-site request.
+    attrs += "; Secure; SameSite=None";
+  } else {
+    attrs += "; SameSite=Lax";
   }
   return attrs;
 }
 
 export function writeSessionCookie(name: string): void {
   if (typeof document === "undefined") return;
-  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(name)}; Max-Age=${MAX_AGE_SECONDS}; ${attributes()}`;
+  document.cookie = `${SESSION_COOKIE_NAME}=${encodeURIComponent(name)}; Max-Age=${MAX_AGE_SECONDS}; ${attributes()}`;
 }
 
 export function clearSessionCookie(): void {
   if (typeof document === "undefined") return;
-  document.cookie = `${COOKIE_NAME}=; Max-Age=0; ${attributes()}`;
+  document.cookie = `${SESSION_COOKIE_NAME}=; Max-Age=0; ${attributes()}`;
 }

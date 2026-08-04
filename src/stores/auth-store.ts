@@ -36,6 +36,13 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "client_auth",
       storage: createJSONStorage(() => localStorage),
+      // Re-write the marketing-site marker whenever auth is restored from
+      // localStorage (page refresh, new tab) so sls-web can see the session
+      // even if the cookie expired or was first set before COOKIE_DOMAIN was
+      // configured in prod.
+      onRehydrateStorage: () => (state) => {
+        if (state?.user?.name) writeSessionCookie(state.user.name);
+      },
     },
   ),
 );
