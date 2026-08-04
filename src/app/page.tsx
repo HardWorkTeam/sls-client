@@ -109,7 +109,17 @@ export default function Home() {
               </button>
 
               {error ? (
-                <p className="mt-1 text-sm text-[#b42318]">{error}</p>
+                <div className="mt-1 text-center text-sm">
+                  <p className="text-[#b42318]">{error}</p>
+                  {error.toLowerCase().includes("verify") ? (
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(email)}`}
+                      className="mt-1 inline-block font-bold text-[#027a48] underline"
+                    >
+                      Resend verification email
+                    </Link>
+                  ) : null}
+                </div>
               ) : null}
               {status ? (
                 <p className="mt-1 text-sm text-[#05603a]">{status}</p>

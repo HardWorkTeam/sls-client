@@ -13,10 +13,8 @@ import { useAuthStore } from "@/stores/auth-store";
 const SESSION_REFRESH_INTERVAL_MS = 5 * 60 * 60 * 1000;
 
 export function useRegister() {
-  const setAuth = useAuthStore((state) => state.setAuth);
   return useMutation({
     mutationFn: authService.register,
-    onSuccess: (data) => setAuth(data.token, data.user),
   });
 }
 
@@ -31,6 +29,10 @@ export function useLogin() {
 
 export function useForgotPassword() {
   return useMutation({ mutationFn: authService.forgotPassword });
+}
+
+export function useResendEmailVerification() {
+  return useMutation({ mutationFn: authService.resendEmailVerification });
 }
 
 export function useResetPassword() {

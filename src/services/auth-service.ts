@@ -1,5 +1,5 @@
 ﻿import { api } from "@/lib/api";
-import type { AuthResponse, User } from "@/types/api";
+import type { AuthResponse, RegistrationResponse, User } from "@/types/api";
 
 export const authService = {
   async register(payload: {
@@ -7,8 +7,8 @@ export const authService = {
     email: string;
     password: string;
     password_confirmation: string;
-  }): Promise<AuthResponse> {
-    const { data } = await api.post<AuthResponse>("/auth/register", {
+  }): Promise<RegistrationResponse> {
+    const { data } = await api.post<RegistrationResponse>("/auth/register", {
       ...payload,
       device_name: "client-portal",
     });
@@ -24,6 +24,10 @@ export const authService = {
       portal: "couple",
     });
     return data;
+  },
+
+  async resendEmailVerification(email: string): Promise<void> {
+    await api.post("/auth/email/resend", { email });
   },
 
   async logout(): Promise<void> {
@@ -72,4 +76,3 @@ export const authService = {
     await api.post("/auth/reset-password", payload);
   },
 };
-

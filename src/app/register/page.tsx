@@ -38,7 +38,7 @@ export default function RegisterPage() {
         password,
         password_confirmation: passwordConfirmation,
       });
-      router.replace("/my-wedding");
+      router.replace(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (submitError) {
       setError(apiErrorMessage(submitError));
     }

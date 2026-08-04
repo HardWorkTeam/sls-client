@@ -31,6 +31,7 @@ export interface User {
   phone: string | null;
   avatar_path: string | null;
   is_active: boolean;
+  email_verified_at: string | null;
   roles?: Role[];
   created_at?: string;
   updated_at?: string;
@@ -39,6 +40,11 @@ export interface User {
 export interface AuthResponse {
   message: string;
   token: string;
+  user: User;
+}
+
+export interface RegistrationResponse {
+  message: string;
   user: User;
 }
 
