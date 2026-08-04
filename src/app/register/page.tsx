@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AuthHero } from "@/components/layout/auth-hero";
 import { PasswordInput } from "@/components/ui/password-input";
-import { apiErrorMessage } from "@/lib/api";
 import { useRegister } from "@/hooks/use-auth";
+import { apiErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
 
 const fieldClass =
   "h-11 rounded-[22px] border border-[#a6f4c5] bg-white px-4 text-sm text-[#05603a] outline-none placeholder:text-black/35";
@@ -61,7 +61,10 @@ export default function RegisterPage() {
               Couple Portal — create your account
             </p>
 
-            <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2.5 md:mt-4">
+            <form
+              onSubmit={onSubmit}
+              className="mt-3 flex flex-col gap-2.5 md:mt-4"
+            >
               <h2 className="m-0 text-center text-[clamp(20px,2.2vw,30px)] font-bold uppercase text-[#027a48]">
                 Register
               </h2>
@@ -85,7 +88,7 @@ export default function RegisterPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="example@gmail.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
@@ -113,7 +116,9 @@ export default function RegisterPage() {
                 id="password_confirmation"
                 placeholder="Re-enter your password"
                 value={passwordConfirmation}
-                onChange={(event) => setPasswordConfirmation(event.target.value)}
+                onChange={(event) =>
+                  setPasswordConfirmation(event.target.value)
+                }
                 autoComplete="new-password"
                 required
                 className={fieldClass}
@@ -127,7 +132,9 @@ export default function RegisterPage() {
                 {register.isPending ? "Creating account..." : "Create account"}
               </button>
 
-              {error ? <p className="mt-1 text-sm text-[#b42318]">{error}</p> : null}
+              {error ? (
+                <p className="mt-1 text-sm text-[#b42318]">{error}</p>
+              ) : null}
 
               <p className="mt-1 text-center text-sm text-[#05603a]">
                 Already have an account?{" "}

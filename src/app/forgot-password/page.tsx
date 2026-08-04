@@ -1,10 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { AuthHero } from "@/components/layout/auth-hero";
-import { apiErrorMessage } from "@/lib/api";
 import { useForgotPassword } from "@/hooks/use-auth";
+import { apiErrorMessage } from "@/lib/api";
+import Link from "next/link";
+import { FormEvent, useState } from "react";
 
 const fieldClass =
   "h-11 rounded-[22px] border border-[#a6f4c5] bg-white px-4 text-sm text-[#05603a] outline-none placeholder:text-black/35";
@@ -57,14 +57,20 @@ export default function ForgotPasswordPage() {
                 </Link>
               </div>
             ) : (
-              <form onSubmit={onSubmit} className="mt-3 flex flex-col gap-2.5 md:mt-4">
-                <label htmlFor="email" className="text-sm font-bold text-[#05603a]">
+              <form
+                onSubmit={onSubmit}
+                className="mt-3 flex flex-col gap-2.5 md:mt-4"
+              >
+                <label
+                  htmlFor="email"
+                  className="text-sm font-bold text-[#05603a]"
+                >
                   Email
                 </label>
                 <input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="example@gmail.com"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"
@@ -80,7 +86,9 @@ export default function ForgotPasswordPage() {
                   {forgotPassword.isPending ? "Sending..." : "Send reset link"}
                 </button>
 
-                {error ? <p className="mt-1 text-sm text-[#b42318]">{error}</p> : null}
+                {error ? (
+                  <p className="mt-1 text-sm text-[#b42318]">{error}</p>
+                ) : null}
 
                 <p className="mt-1 text-center text-sm text-[#05603a]">
                   <Link href="/" className="font-bold underline">
