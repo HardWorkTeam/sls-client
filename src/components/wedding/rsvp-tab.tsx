@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { StatCard } from "@/components/ui/stat-card";
 import {
@@ -27,6 +28,7 @@ export function RsvpTab({ weddingId }: { weddingId: number }) {
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [selectedMessage, setSelectedMessage] = useState<RsvpResponse | null>(null);
 
   const { data: stats } = useRsvpStats(weddingId);
   const rsvps = useRsvps(weddingId, {
@@ -79,9 +81,20 @@ export function RsvpTab({ weddingId }: { weddingId: number }) {
         hideBelow: "lg",
         className: "max-w-56",
         cell: (rsvp) => (
-          <p className="truncate text-zinc-600" title={rsvp.message ?? ""}>
-            {rsvp.message ?? "—"}
-          </p>
+          <>
+            <p className="truncate text-zinc-600" title={rsvp.message ?? ""}>
+              {rsvp.message ?? "—"}
+            </p>
+            {rsvp.message ? (
+              <button
+                type="button"
+                className="mt-1 text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                onClick={() => setSelectedMessage(rsvp)}
+              >
+                Read full message
+              </button>
+            ) : null}
+          </>
         ),
       },
       {
@@ -202,6 +215,15 @@ export function RsvpTab({ weddingId }: { weddingId: number }) {
           />
         )}
       </QueryState>
+      <Dialog
+        open={selectedMessage !== null}
+        onClose={() => setSelectedMessage(null)}
+        title={`Message from ${selectedMessage?.guest_name ?? "guest"}`}
+      >
+        <p className="whitespace-pre-wrap break-words text-sm leading-6 text-zinc-700">
+          {selectedMessage?.message}
+        </p>
+      </Dialog>
     </div>
   );
 }
