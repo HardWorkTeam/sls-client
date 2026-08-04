@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 /**
  * Invitation data is loaded in the browser after authentication, so its IDs
  * are not available while creating the GitHub Pages export. Returning no
@@ -9,6 +7,6 @@ export function generateStaticParams(): { id: string }[] {
   return [];
 }
 
-export default function InvitationLayout({ children }: { children: ReactNode }) {
+export default function InvitationLayout({ children }: { children: React.ReactNode }) {
   return children;
 }
