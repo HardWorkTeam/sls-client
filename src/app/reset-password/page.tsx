@@ -1,7 +1,7 @@
 "use client";
 
 import { PasswordInput } from "@/components/ui/password-input";
-import { useResetPassword } from "@/hooks/use-auth";
+import { useResetPassword, useResetPasswordLinkStatus } from "@/hooks/use-auth";
 import { apiErrorMessage } from "@/lib/api";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,6 +24,10 @@ function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const resetPassword = useResetPassword();
+  const resetLinkStatus = useResetPasswordLinkStatus(token, emailFromLink);
+  const linkIsUnavailable =
+    Boolean(token && emailFromLink) &&
+    (resetLinkStatus.isError || resetLinkStatus.data === false);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,10 +56,26 @@ function ResetPasswordForm() {
         <p className="mt-4 text-center text-sm text-[#05603a]">
           Your password has been reset. Redirecting to log in…
         </p>
-      ) : !token ? (
+      ) : !token || !emailFromLink ? (
         <div className="mt-4 space-y-3 text-center">
           <p className="text-sm text-[#b42318]">
             This reset link is invalid or has expired.
+          </p>
+          <Link
+            href="/forgot-password"
+            className="font-bold text-[#027a48] underline"
+          >
+            Request a new link
+          </Link>
+        </div>
+      ) : resetLinkStatus.isPending ? (
+        <p className="mt-4 text-center text-sm text-[#05603a]">
+          Checking your reset link…
+        </p>
+      ) : linkIsUnavailable ? (
+        <div className="mt-4 space-y-3 text-center">
+          <p className="text-sm text-[#05603a]">
+            This password reset link has already been used or is no longer valid.
           </p>
           <Link
             href="/forgot-password"

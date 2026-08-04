@@ -39,6 +39,15 @@ export function useResetPassword() {
   return useMutation({ mutationFn: authService.resetPassword });
 }
 
+export function useResetPasswordLinkStatus(token: string, email: string) {
+  return useQuery({
+    queryKey: ["reset-password-link-status", token, email],
+    queryFn: () => authService.isResetPasswordLinkValid({ token, email }),
+    enabled: Boolean(token && email),
+    retry: false,
+  });
+}
+
 export function useLogout() {
   const clear = useAuthStore((state) => state.clear);
   const router = useRouter();

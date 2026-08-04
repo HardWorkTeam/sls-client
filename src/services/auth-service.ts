@@ -75,4 +75,15 @@ export const authService = {
   }): Promise<void> {
     await api.post("/auth/reset-password", payload);
   },
+
+  async isResetPasswordLinkValid(payload: {
+    token: string;
+    email: string;
+  }): Promise<boolean> {
+    const { data } = await api.post<{ valid: boolean }>(
+      "/auth/reset-password/status",
+      payload,
+    );
+    return data.valid;
+  },
 };
