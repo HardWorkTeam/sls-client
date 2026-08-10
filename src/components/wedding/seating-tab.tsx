@@ -21,7 +21,7 @@ import {
 } from "@/hooks/use-seating";
 import { apiErrorMessage } from "@/lib/api";
 import { seatingService } from "@/services/seating-service";
-import { Plus, Trash2, Upload, Wand2, X } from "lucide-react";
+import { Copy, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -45,10 +45,43 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   const confirm = useConfirm();
 
   const [tableDialog, setTableDialog] = useState(false);
+  const [duplicateDialog, setDuplicateDialog] = useState(false);
   const [assignTableId, setAssignTableId] = useState<number | null>(null);
   const [assignGuestId, setAssignGuestId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  const duplicateForm = useForm<TableForm>({
+    defaultValues: { table_name: "", table_number: "", capacity: "10" },
+  });
+
+  const openDuplicate = (table: { table_name: string; table_number?: number | null; capacity: number }) => {
+    const baseName = table.table_number
+      ? `${table.table_name} #${table.table_number}`
+      : table.table_name;
+    duplicateForm.reset({
+      table_name: `${baseName} (Copy)`,
+      table_number: "",
+      capacity: String(table.capacity),
+    });
+    setError(null);
+    setDuplicateDialog(true);
+  };
+
+  const onDuplicateTable = duplicateForm.handleSubmit(async (values) => {
+    setError(null);
+    try {
+      await createTable.mutateAsync({
+        table_name: values.table_name,
+        table_number: values.table_number ? Number(values.table_number) : null,
+        capacity: Number(values.capacity) || 0,
+      });
+      duplicateForm.reset({ table_name: "", table_number: "", capacity: "10" });
+      setDuplicateDialog(false);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  });
 
   const form = useForm<TableForm>({
     defaultValues: { table_name: "", table_number: "", capacity: "10" },
@@ -178,23 +211,33 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                       {seated}/{table.capacity || "∞"} seats
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Delete ${table.table_name}`}
-                    onClick={async () => {
-                      if (
-                        await confirm({
-                          title: `Delete "${table.table_name}"?`,
-                          description: "Seated guests will be unassigned.",
-                        })
-                      ) {
-                        deleteTable.mutate(table.id);
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Duplicate ${table.table_name}`}
+                      onClick={() => openDuplicate(table)}
+                    >
+                      <Copy className="h-4 w-4 text-zinc-500" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Delete ${table.table_name}`}
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: `Delete "${table.table_name}"?`,
+                            description: "Seated guests will be unassigned.",
+                          })
+                        ) {
+                          deleteTable.mutate(table.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {(table.seatings ?? []).map((seating) => (
@@ -310,6 +353,54 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
             </Button>
             <Button type="submit" disabled={createTable.isPending}>
               Add Table
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+      <Dialog
+        open={duplicateDialog}
+        onClose={() => setDuplicateDialog(false)}
+        title="Duplicate Table"
+      >
+        <form onSubmit={onDuplicateTable} className="space-y-3">
+          <div>
+            <Label htmlFor="dup-table-name">Table name</Label>
+            <Input
+              id="dup-table-name"
+              {...duplicateForm.register("table_name", { required: true })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="dup-table-number">Table number</Label>
+              <Input
+                id="dup-table-number"
+                type="number"
+                min={1}
+                {...duplicateForm.register("table_number")}
+              />
+            </div>
+            <div>
+              <Label htmlFor="dup-table-capacity">Capacity</Label>
+              <Input
+                id="dup-table-capacity"
+                type="number"
+                min={0}
+                {...duplicateForm.register("capacity")}
+              />
+            </div>
+          </div>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDuplicateDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={createTable.isPending}>
+              <Copy className="h-4 w-4" /> Duplicate
             </Button>
           </div>
         </form>
