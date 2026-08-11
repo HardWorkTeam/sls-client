@@ -18,10 +18,11 @@ import {
   useSeatingReport,
   useTables,
   useUnassignSeat,
+  useUpdateTable,
 } from "@/hooks/use-seating";
 import { apiErrorMessage } from "@/lib/api";
 import { seatingService } from "@/services/seating-service";
-import { Copy, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
+import { Copy, Pencil, Plus, Trash2, Upload, Wand2, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -38,6 +39,7 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   const { data: guestsPage } = useGuests(weddingId, { per_page: 200 });
 
   const createTable = useCreateTable(weddingId);
+  const updateTable = useUpdateTable(weddingId);
   const deleteTable = useDeleteTable(weddingId);
   const assignSeat = useAssignSeat(weddingId);
   const unassignSeat = useUnassignSeat(weddingId);
@@ -46,12 +48,18 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
 
   const [tableDialog, setTableDialog] = useState(false);
   const [duplicateDialog, setDuplicateDialog] = useState(false);
+  const [editDialog, setEditDialog] = useState(false);
+  const [editTableId, setEditTableId] = useState<number | null>(null);
   const [assignTableId, setAssignTableId] = useState<number | null>(null);
   const [assignGuestId, setAssignGuestId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const duplicateForm = useForm<TableForm>({
+    defaultValues: { table_name: "", table_number: "", capacity: "10" },
+  });
+
+  const editForm = useForm<TableForm>({
     defaultValues: { table_name: "", table_number: "", capacity: "10" },
   });
 
@@ -67,6 +75,36 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
     setError(null);
     setDuplicateDialog(true);
   };
+
+  const openEdit = (table: { id: number; table_name: string; table_number?: number | null; capacity: number }) => {
+    setEditTableId(table.id);
+    editForm.reset({
+      table_name: table.table_name,
+      table_number: table.table_number != null ? String(table.table_number) : "",
+      capacity: String(table.capacity),
+    });
+    setError(null);
+    setEditDialog(true);
+  };
+
+  const onEditTable = editForm.handleSubmit(async (values) => {
+    if (!editTableId) return;
+    setError(null);
+    try {
+      await updateTable.mutateAsync({
+        tableId: editTableId,
+        payload: {
+          table_name: values.table_name,
+          table_number: values.table_number ? Number(values.table_number) : null,
+          capacity: Number(values.capacity) || 0,
+        },
+      });
+      setEditDialog(false);
+      setEditTableId(null);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  });
 
   const onDuplicateTable = duplicateForm.handleSubmit(async (values) => {
     setError(null);
@@ -215,6 +253,14 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label={`Edit ${table.table_name}`}
+                      onClick={() => openEdit(table)}
+                    >
+                      <Pencil className="h-4 w-4 text-zinc-500" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       aria-label={`Duplicate ${table.table_name}`}
                       onClick={() => openDuplicate(table)}
                     >
@@ -353,6 +399,54 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
             </Button>
             <Button type="submit" disabled={createTable.isPending}>
               Add Table
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+      <Dialog
+        open={editDialog}
+        onClose={() => setEditDialog(false)}
+        title="Edit Table"
+      >
+        <form onSubmit={onEditTable} className="space-y-3">
+          <div>
+            <Label htmlFor="edit-table-name">Table name</Label>
+            <Input
+              id="edit-table-name"
+              {...editForm.register("table_name", { required: true })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="edit-table-number">Table number</Label>
+              <Input
+                id="edit-table-number"
+                type="number"
+                min={1}
+                {...editForm.register("table_number")}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-table-capacity">Capacity</Label>
+              <Input
+                id="edit-table-capacity"
+                type="number"
+                min={0}
+                {...editForm.register("capacity")}
+              />
+            </div>
+          </div>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateTable.isPending}>
+              <Pencil className="h-4 w-4" /> Save Changes
             </Button>
           </div>
         </form>
