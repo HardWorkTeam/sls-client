@@ -196,6 +196,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const updateMember = useUpdateMember(wedding.id);
   const removeMember = useRemoveMember(wedding.id);
   const hasRole = useAuthStore((state) => state.hasRole);
+  const currentUser = useAuthStore((state) => state.user);
   const [error, setError] = useState<string | null>(null);
 
   const [editMemberOpen, setEditMemberOpen] = useState(false);
@@ -547,7 +548,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {member.user?.id !== wedding.created_by?.id && (
+                          {member.user?.id !== wedding.created_by?.id && member.user?.id !== currentUser?.id && (
                             <Button
                               size="icon"
                               variant="ghost"
