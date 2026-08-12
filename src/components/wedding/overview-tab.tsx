@@ -533,7 +533,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                       <Badge variant={statusVariant(member.member_role)}>
                         <span className="capitalize">{member.member_role}</span>
                       </Badge>
-                      {canManageStatus && (
+                      {(canManageStatus || member.user?.id === currentUser?.id) && (
                         <div className="flex items-center gap-1">
                           <Button
                             size="icon"
@@ -548,7 +548,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {member.user?.id !== wedding.created_by?.id && member.user?.id !== currentUser?.id && (
+                          {canManageStatus && member.user?.id !== wedding.created_by?.id && member.user?.id !== currentUser?.id && (
                             <Button
                               size="icon"
                               variant="ghost"
