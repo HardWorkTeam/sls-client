@@ -689,7 +689,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               <Select id="i-role" {...inviteForm.register("member_role")}>
                 <option value="bride">Bride</option>
                 <option value="groom">Groom</option>
-                <option value="organizer">Organizer</option>
+                <option value="member">Member</option>
               </Select>
             </div>
             {inviteError ? <p className="text-sm text-red-600">{inviteError}</p> : null}
