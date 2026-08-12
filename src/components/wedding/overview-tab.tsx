@@ -516,9 +516,16 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                     className="flex items-center justify-between rounded-lg border border-zinc-100 px-3 py-2"
                   >
                     <div>
-                      <p className="text-sm font-medium text-zinc-800">
-                        {member.user?.name}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-zinc-800">
+                          {member.user?.name}
+                        </p>
+                        {member.user?.id === wedding.created_by?.id && (
+                          <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-zinc-50">
+                            Owner
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-zinc-500">{member.user?.email}</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -540,18 +547,20 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-red-500 hover:text-red-700"
-                            onClick={() => {
-                              setDeleteMemberError(null);
-                              setMemberToDelete(member);
-                              setDeleteMemberOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {member.user?.id !== wedding.created_by?.id && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-red-500 hover:text-red-700"
+                              onClick={() => {
+                                setDeleteMemberError(null);
+                                setMemberToDelete(member);
+                                setDeleteMemberOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
