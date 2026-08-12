@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
   XCircle,
+  Trash2,
 } from "lucide-react";
 import { type ComponentProps, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -33,6 +34,8 @@ import { useGiftSummary } from "@/hooks/use-gifts";
 import {
   useChangeWeddingStatus,
   useInviteMember,
+  useUpdateMember,
+  useRemoveMember,
   useUpdateWedding,
   useWeddingDashboard,
   useWeddingMembers,
@@ -40,7 +43,7 @@ import {
 import { apiErrorMessage } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
-import type { Wedding, WeddingStatus } from "@/types/api";
+import type { Wedding, WeddingStatus, WeddingMember } from "@/types/api";
 
 interface EditForm {
   wedding_name: string;
@@ -190,8 +193,15 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const changeStatus = useChangeWeddingStatus(wedding.id);
   const updateWedding = useUpdateWedding(wedding.id);
   const inviteMember = useInviteMember(wedding.id);
+  const updateMember = useUpdateMember(wedding.id);
+  const removeMember = useRemoveMember(wedding.id);
   const hasRole = useAuthStore((state) => state.hasRole);
   const [error, setError] = useState<string | null>(null);
+
+  const [editMemberOpen, setEditMemberOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<WeddingMember | null>(null);
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const editMemberForm = useForm<{ member_role: string }>();
 
   const [editOpen, setEditOpen] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -507,9 +517,44 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                       </p>
                       <p className="text-xs text-zinc-500">{member.user?.email}</p>
                     </div>
-                    <Badge variant={statusVariant(member.member_role)}>
-                      <span className="capitalize">{member.member_role}</span>
-                    </Badge>
+                    <div className="flex items-center gap-3">
+                      <Badge variant={statusVariant(member.member_role)}>
+                        <span className="capitalize">{member.member_role}</span>
+                      </Badge>
+                      {canManageStatus && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-zinc-500 hover:text-zinc-900"
+                            onClick={() => {
+                              setMemberError(null);
+                              setEditingMember(member);
+                              editMemberForm.reset({ member_role: member.member_role });
+                              setEditMemberOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-red-500 hover:text-red-700"
+                            onClick={async () => {
+                              if (confirm("Are you sure you want to remove this member?")) {
+                                try {
+                                  await removeMember.mutateAsync(member.id);
+                                } catch (err) {
+                                  alert(apiErrorMessage(err));
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
@@ -703,6 +748,43 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
             </div>
           </form>
         )}
+      </Dialog>
+
+      <Dialog open={editMemberOpen} onClose={() => setEditMemberOpen(false)} title="Edit member role">
+        <form
+          onSubmit={editMemberForm.handleSubmit(async (values) => {
+            if (!editingMember) return;
+            setMemberError(null);
+            try {
+              await updateMember.mutateAsync({
+                memberId: editingMember.id,
+                payload: { member_role: values.member_role },
+              });
+              setEditMemberOpen(false);
+            } catch (err) {
+              setMemberError(apiErrorMessage(err));
+            }
+          })}
+          className="space-y-3"
+        >
+          <div>
+            <Label htmlFor="edit-m-role">Role</Label>
+            <Select id="edit-m-role" {...editMemberForm.register("member_role")}>
+              <option value="bride">Bride</option>
+              <option value="groom">Groom</option>
+              <option value="member">Member</option>
+            </Select>
+          </div>
+          {memberError ? <p className="text-sm text-red-600">{memberError}</p> : null}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setEditMemberOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateMember.isPending}>
+              {updateMember.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </form>
       </Dialog>
     </div>
   );

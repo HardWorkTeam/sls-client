@@ -90,3 +90,26 @@ export function useInviteMember(id: number) {
     },
   });
 }
+
+export function useUpdateMember(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ memberId, payload }: { memberId: number; payload: { member_role: string; is_primary?: boolean } }) =>
+      weddingService.updateMember(id, memberId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: weddingKeys.members(id) });
+      queryClient.invalidateQueries({ queryKey: weddingKeys.all });
+    },
+  });
+}
+
+export function useRemoveMember(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: number) => weddingService.removeMember(id, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: weddingKeys.members(id) });
+      queryClient.invalidateQueries({ queryKey: weddingKeys.all });
+    },
+  });
+}

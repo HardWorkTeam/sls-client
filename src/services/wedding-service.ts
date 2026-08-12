@@ -99,6 +99,18 @@ export const weddingService = {
     return { member: data.data, temp_password: data.temp_password };
   },
 
+  async updateMember(
+    id: number,
+    memberId: number,
+    payload: { member_role: string; is_primary?: boolean }
+  ): Promise<WeddingMember> {
+    const { data } = await api.put<{ data: WeddingMember }>(
+      `/weddings/${id}/members/${memberId}`,
+      payload
+    );
+    return data.data;
+  },
+
   async removeMember(id: number, memberId: number): Promise<void> {
     await api.delete(`/weddings/${id}/members/${memberId}`);
   },
