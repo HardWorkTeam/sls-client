@@ -112,7 +112,7 @@ export function useImportGuests(weddingId: number) {
 export function useBulkInvite(weddingId: number) {
   const invalidate = useInvalidateGuests(weddingId);
   return useMutation({
-    mutationFn: ({ guestIds, invitationId }: { guestIds: number[]; invitationId: number }) =>
+    mutationFn: ({ guestIds, invitationId }: { guestIds?: number[]; invitationId: number }) =>
       guestService.bulkInvite(weddingId, guestIds, invitationId),
     onSuccess: invalidate,
   });

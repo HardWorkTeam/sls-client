@@ -287,7 +287,7 @@ export function GuestsTab({
     setError(null);
     try {
       const targetIds = isAllMatchingSelected
-        ? (data?.data ?? []).map((g) => g.id)
+        ? undefined
         : selected;
       const result = await bulkInvite.mutateAsync({
         guestIds: targetIds,

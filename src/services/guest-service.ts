@@ -87,7 +87,7 @@ export const guestService = {
     };
   },
 
-  async bulkInvite(weddingId: number, guestIds: number[], invitationId: number) {
+  async bulkInvite(weddingId: number, guestIds: number[] | undefined, invitationId: number) {
     const { data } = await api.post<{ message: string }>(
       `/weddings/${weddingId}/guests/bulk-invite`,
       { guest_ids: guestIds, invitation_id: invitationId },
