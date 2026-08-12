@@ -203,6 +203,10 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const [memberError, setMemberError] = useState<string | null>(null);
   const editMemberForm = useForm<{ member_role: string }>();
 
+  const [deleteMemberOpen, setDeleteMemberOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<WeddingMember | null>(null);
+  const [deleteMemberError, setDeleteMemberError] = useState<string | null>(null);
+
   const [editOpen, setEditOpen] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const editForm = useForm<EditForm>();
@@ -540,14 +544,10 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-red-500 hover:text-red-700"
-                            onClick={async () => {
-                              if (confirm("Are you sure you want to remove this member?")) {
-                                try {
-                                  await removeMember.mutateAsync(member.id);
-                                } catch (err) {
-                                  alert(apiErrorMessage(err));
-                                }
-                              }
+                            onClick={() => {
+                              setDeleteMemberError(null);
+                              setMemberToDelete(member);
+                              setDeleteMemberOpen(true);
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -785,6 +785,42 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
             </Button>
           </div>
         </form>
+      </Dialog>
+
+      <Dialog
+        open={deleteMemberOpen}
+        onClose={() => setDeleteMemberOpen(false)}
+        title="Remove Member"
+        description="Are you sure you want to remove this member? They will lose access to manage this wedding."
+      >
+        <div className="space-y-4 pt-2">
+          {deleteMemberError ? <p className="text-sm text-red-600">{deleteMemberError}</p> : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteMemberOpen(false)}
+              disabled={removeMember.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!memberToDelete) return;
+                setDeleteMemberError(null);
+                try {
+                  await removeMember.mutateAsync(memberToDelete.id);
+                  setDeleteMemberOpen(false);
+                } catch (err) {
+                  setDeleteMemberError(apiErrorMessage(err));
+                }
+              }}
+              disabled={removeMember.isPending}
+            >
+              {removeMember.isPending ? "Removing..." : "Remove"}
+            </Button>
+          </div>
+        </div>
       </Dialog>
     </div>
   );
