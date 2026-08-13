@@ -435,6 +435,7 @@ export default function InvitationEditPage() {
   }, [wedding]);
 
   const initWeddingDaysRef = useRef<number | null>(null);
+  const initialWeddingDaysRef = useRef<WeddingDay[]>([]);
   useEffect(() => {
     if (!invitation) return;
     if (initWeddingDaysRef.current === invitation.id) return;
@@ -450,8 +451,10 @@ export default function InvitationEditPage() {
       : [];
     if (saved.length > 0) {
       setWeddingDays(saved);
+      initialWeddingDaysRef.current = saved;
     } else {
       setWeddingDays([EMPTY_DAY]);
+      initialWeddingDaysRef.current = [EMPTY_DAY];
     }
   }, [invitation]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -463,6 +466,38 @@ export default function InvitationEditPage() {
     setSaveState("idle");
     setSaveError("");
     const cleanDays = weddingDays.filter((d) => d.date);
+
+    // Identify changed dates
+    const dateChanges: Record<string, string> = {}; // oldDate -> newDate
+    initialWeddingDaysRef.current.forEach((oldDay, idx) => {
+      const newDay = weddingDays[idx];
+      if (oldDay?.date && newDay?.date && oldDay.date !== newDay.date) {
+        dateChanges[oldDay.date] = newDay.date;
+      }
+    });
+
+    const timelineUpdates: Promise<any>[] = [];
+    if (Object.keys(dateChanges).length > 0) {
+      (timelineEvents ?? []).forEach((evt) => {
+        if (!evt.starts_at) return;
+        const d = new Date(evt.starts_at);
+        const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const newDate = dateChanges[localDate];
+        if (newDate) {
+          const localTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+          const newStartsAt = new Date(`${newDate}T${localTime}`).toISOString();
+          timelineUpdates.push(
+            updateTimelineEvent.mutateAsync({
+              eventId: evt.id,
+              payload: {
+                starts_at: newStartsAt,
+              },
+            })
+          );
+        }
+      });
+    }
+
     // The wedding record's date/time is a fixed anchor set at wedding creation
     // and edited only in the Overview tab — the invitation editor must NOT
     // overwrite it. Wedding days here drive the invitation's own schedule; the
@@ -519,8 +554,10 @@ export default function InvitationEditPage() {
             },
           },
         }),
+        ...timelineUpdates,
       ]);
       setSaveState("saved");
+      initialWeddingDaysRef.current = cleanDays;
       setPreviewKey((k) => k + 1);
       setTimeout(() => setSaveState("idle"), 2500);
     } catch (err) {
@@ -829,9 +866,17 @@ export default function InvitationEditPage() {
                     {weddingDays.length > 1 ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          setWeddingDays((days) => days.filter((_, idx) => idx !== i));
-                          if (mainDayIndex === i) setMainDayIndex(0);
+                        onClick={async () => {
+                          if (
+                            await confirm({
+                              title: `Delete Day ${i + 1}?`,
+                              description:
+                                "This wedding day will be removed from your invitation schedule. Any timeline events currently pinned to this day will remain in your system but will no longer match this day.",
+                            })
+                          ) {
+                            setWeddingDays((days) => days.filter((_, idx) => idx !== i));
+                            if (mainDayIndex === i) setMainDayIndex(0);
+                          }
                         }}
                         className="text-stone-300 hover:text-red-500"
                         aria-label={`Remove day ${i + 1}`}
