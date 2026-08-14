@@ -52,6 +52,7 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
   const [editTableId, setEditTableId] = useState<number | null>(null);
   const [assignTableId, setAssignTableId] = useState<number | null>(null);
   const [assignGuestId, setAssignGuestId] = useState("");
+  const [assignSearch, setAssignSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -129,6 +130,10 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
     (guest) => !guest.seating,
   );
 
+  const filteredUnseatedGuests = unseatedGuests.filter((guest) =>
+    guest.name.toLowerCase().includes(assignSearch.toLowerCase())
+  );
+
   const onCreateTable = form.handleSubmit(async (values) => {
     setError(null);
     try {
@@ -154,6 +159,7 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
       });
       setAssignGuestId("");
       setAssignTableId(null);
+      setAssignSearch("");
     } catch (err) {
       setError(apiErrorMessage(err));
     }
@@ -311,28 +317,75 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                   ))}
 
                   {assignTableId === table.id ? (
-                    <div className="flex gap-2 pt-1">
-                      <Select
-                        className="h-8 flex-1 text-xs"
-                        value={assignGuestId}
-                        onChange={(event) =>
-                          setAssignGuestId(event.target.value)
-                        }
-                      >
-                        <option value="">Choose guest...</option>
-                        {unseatedGuests.map((guest) => (
-                          <option key={guest.id} value={guest.id}>
-                            {guest.name}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex gap-2">
+                        <Input
+                          type="search"
+                          placeholder="Search guest..."
+                          className="h-8 flex-1 text-xs"
+                          value={assignSearch}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setAssignSearch(val);
+                            // Auto-select first matching guest
+                            const matched = unseatedGuests.filter((guest) =>
+                              guest.name.toLowerCase().includes(val.toLowerCase())
+                            );
+                            if (matched.length > 0 && val.trim() !== "") {
+                              setAssignGuestId(String(matched[0].id));
+                            } else {
+                              setAssignGuestId("");
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && assignGuestId) {
+                              e.preventDefault();
+                              onAssign();
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-zinc-500 hover:text-zinc-700"
+                          onClick={() => {
+                            setAssignTableId(null);
+                            setAssignGuestId("");
+                            setAssignSearch("");
+                          }}
+                          aria-label="Cancel assignment"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select
+                          className="h-8 flex-1 text-xs"
+                          value={assignGuestId}
+                          onChange={(event) =>
+                            setAssignGuestId(event.target.value)
+                          }
+                        >
+                          <option value="">
+                            {filteredUnseatedGuests.length === 0
+                              ? "No matching guests"
+                              : "Choose guest..."}
                           </option>
-                        ))}
-                      </Select>
-                      <Button
-                        size="sm"
-                        onClick={onAssign}
-                        disabled={!assignGuestId}
-                      >
-                        Seat
-                      </Button>
+                          {filteredUnseatedGuests.map((guest) => (
+                            <option key={guest.id} value={guest.id}>
+                              {guest.name}
+                            </option>
+                          ))}
+                        </Select>
+                        <Button
+                          size="sm"
+                          onClick={onAssign}
+                          disabled={!assignGuestId}
+                        >
+                          Seat
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <Button
@@ -343,6 +396,7 @@ export function SeatingTab({ weddingId }: { weddingId: number }) {
                       onClick={() => {
                         setAssignTableId(table.id);
                         setAssignGuestId("");
+                        setAssignSearch("");
                       }}
                     >
                       <Plus className="h-4 w-4" /> Assign guest
