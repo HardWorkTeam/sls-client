@@ -25,10 +25,12 @@ import {
 import { useCreateGuest, useGuests } from "@/hooks/use-guests";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
+import { giftService } from "@/services/gift-service";
 import type { Gift, Guest } from "@/types/api";
 import {
   Check,
   ChevronDown,
+  Download,
   Gift as GiftIcon,
   Pencil,
   Plus,
@@ -297,6 +299,24 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     }
   });
 
+  const onExport = async () => {
+    setError(null);
+    try {
+      const { blob, filename } = await giftService.exportExcel(weddingId, {
+        gift_type: giftType || undefined,
+        search: search || undefined,
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  };
+
   const columns = useMemo<DataTableColumn<Gift>[]>(
     () => [
       {
@@ -411,9 +431,14 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
 
       <Toolbar
         actions={
-          <Button size="sm" onClick={openDialog}>
-            <Plus className="h-4 w-4" /> Record Gift
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={onExport}>
+              <Download className="h-4 w-4" /> Export
+            </Button>
+            <Button size="sm" onClick={openDialog}>
+              <Plus className="h-4 w-4" /> Record Gift
+            </Button>
+          </>
         }
       >
         <SearchInput

@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { filenameFromContentDisposition } from "@/lib/utils";
 import type { Gift, GiftSummary, Paginated } from "@/types/api";
 
 export interface GiftPayload {
@@ -52,5 +53,22 @@ export const giftService = {
 
   async remove(weddingId: number, giftId: number): Promise<void> {
     await api.delete(`/weddings/${weddingId}/gifts/${giftId}`);
+  },
+
+  async exportExcel(
+    weddingId: number,
+    params: { gift_type?: string; search?: string } = {},
+  ): Promise<{ blob: Blob; filename: string }> {
+    const response = await api.get(`/weddings/${weddingId}/gifts/export`, {
+      params,
+      responseType: "blob",
+    });
+    return {
+      blob: response.data as Blob,
+      filename: filenameFromContentDisposition(
+        response.headers["content-disposition"],
+        "gifts.xlsx",
+      ),
+    };
   },
 };
