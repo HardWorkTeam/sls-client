@@ -388,6 +388,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         const totalGiftUsd = incomeUsd + incomeKhr / 4000;
         const totalExpensesUsd = expensesUsd + expensesKhr / 4000;
         const netUsd = totalGiftUsd - totalExpensesUsd;
+        const netKhr = netUsd * 4000;
         const isLoss = netUsd < 0;
 
         return (
@@ -422,10 +423,15 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               </div>
               <div className="min-w-0">
                 <p className="text-sm text-zinc-500">{isLoss ? "Net Loss" : "Net Profit"}</p>
-                <div className={`text-2xl font-semibold ${isLoss ? "text-rose-700" : "text-emerald-700"}`}>
-                  {formatMoney(netUsd, "USD")}
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className={`text-2xl font-semibold ${isLoss ? "text-rose-700" : "text-emerald-700"}`}>
+                    {formatMoney(netUsd, "USD")}
+                  </span>
+                  <span className="text-sm font-medium text-zinc-400">
+                    ({formatMoney(netKhr, "KHR")})
+                  </span>
                 </div>
-                <p className="text-xs text-zinc-400">{isLoss ? "loss / deficit" : "surplus"}</p>
+                <p className="text-xs text-zinc-400 mt-0.5">{isLoss ? "loss / deficit" : "surplus"}</p>
               </div>
             </div>
           </div>
