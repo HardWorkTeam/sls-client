@@ -30,6 +30,7 @@ import {
   useCreateGuest,
   useCreateGuestGroup,
   useDeleteAllGuests,
+  useDeleteGuest,
   useDeleteGuestGroup,
   useGuestGroups,
   useGuests,
@@ -132,6 +133,7 @@ export function GuestsTab({
 
   const createGuest = useCreateGuest(weddingId);
   const updateGuest = useUpdateGuest(weddingId);
+  const deleteGuest = useDeleteGuest(weddingId);
   const deleteAllGuests = useDeleteAllGuests(weddingId);
   const importGuests = useImportGuests(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
@@ -141,6 +143,25 @@ export function GuestsTab({
   const setCheckIn = useSetCheckIn(weddingId);
   const { data: checkInStats } = useCheckInStats(weddingId, canCheckIn);
   const confirm = useConfirm();
+
+  const onDeleteGuest = async (guest: Guest) => {
+    setError(null);
+    setFeedback(null);
+    if (
+      await confirm({
+        title: `Delete ${guest.name}?`,
+        description:
+          "This guest and their RSVP/seating assignments will be permanently removed. This action cannot be undone.",
+      })
+    ) {
+      try {
+        await deleteGuest.mutateAsync(guest.id);
+        setFeedback("Guest deleted successfully.");
+      } catch (err) {
+        setError(apiErrorMessage(err));
+      }
+    }
+  };
 
   const onDeleteSelected = async () => {
     setFeedback(null);
@@ -704,6 +725,17 @@ export function GuestsTab({
                             onClick={() => openEdit(guest)}
                           >
                             <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            aria-label={`Delete ${guest.name}`}
+                            title="Delete guest"
+                            disabled={deleteGuest.isPending}
+                            onClick={() => onDeleteGuest(guest)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
