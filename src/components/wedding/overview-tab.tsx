@@ -350,31 +350,12 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
       {isLoading || !dashboard ? (
         <PageLoader label="Loading statistics..." />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard
             label="Total Guests"
             value={dashboard.rsvp.total_guests}
             icon={Users}
             accent="emerald"
-          />
-          <StatCard
-            label="Confirmed"
-            value={dashboard.rsvp.confirmed}
-            hint={`${dashboard.rsvp.expected_attendees} expected attendees`}
-            icon={CheckCircle2}
-            accent="sky"
-          />
-          <StatCard
-            label="Declined"
-            value={dashboard.rsvp.declined}
-            icon={XCircle}
-            accent="rose"
-          />
-          <StatCard
-            label="Pending / Maybe"
-            value={dashboard.rsvp.pending + dashboard.rsvp.maybe}
-            icon={HelpCircle}
-            accent="amber"
           />
         </div>
       )}
