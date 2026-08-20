@@ -11,21 +11,22 @@ import {
 } from "@/components/kit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/components/ui/confirm-dialog";
+
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { DualCurrencyValue, StatCard } from "@/components/ui/stat-card";
 import {
   useCreateGift,
-  useDeleteGift,
   useGifts,
   useGiftSummary,
   useUpdateGift,
 } from "@/hooks/use-gifts";
 import { useCreateGuest, useGuests } from "@/hooks/use-guests";
+import { useWedding } from "@/hooks/use-weddings";
 import { apiErrorMessage } from "@/lib/api";
 import { formatDateTime, formatMoney } from "@/lib/utils";
 import { giftService } from "@/services/gift-service";
+import { useAuthStore } from "@/stores/auth-store";
 import type { Gift, Guest } from "@/types/api";
 import {
   Check,
@@ -35,7 +36,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Trash2,
   UserPlus,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -210,6 +210,10 @@ function GuestPickerOption({
 }
 
 export function GiftsTab({ weddingId }: { weddingId: number }) {
+  const { data: wedding } = useWedding(weddingId);
+  const currentUser = useAuthStore((state) => state.user);
+  const isOwner = wedding?.created_by?.id === currentUser?.id;
+
   const [giftType, setGiftType] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -229,8 +233,6 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const createGift = useCreateGift(weddingId);
   const updateGift = useUpdateGift(weddingId);
   const createGuest = useCreateGuest(weddingId);
-  const { mutate: removeGift } = useDeleteGift(weddingId);
-  const confirm = useConfirm();
 
   const form = useForm<GiftForm>({ defaultValues: EMPTY_FORM });
   const watchType = useWatch({ control: form.control, name: "gift_type" });
@@ -317,8 +319,8 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     }
   };
 
-  const columns = useMemo<DataTableColumn<Gift>[]>(
-    () => [
+  const columns = useMemo<DataTableColumn<Gift>[]>(() => {
+    const base: DataTableColumn<Gift>[] = [
       {
         key: "guest",
         header: "Guest",
@@ -358,7 +360,10 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         className: "text-xs text-zinc-500",
         cell: (gift) => formatDateTime(gift.received_at),
       },
-      {
+    ];
+
+    if (isOwner) {
+      base.push({
         key: "actions",
         header: "",
         headClassName: "w-24",
@@ -372,29 +377,13 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
             >
               <Pencil className="h-4 w-4 text-zinc-500" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Delete gift"
-              onClick={async () => {
-                if (
-                  await confirm({
-                    title: "Delete this gift record?",
-                    description: "This gift entry will be permanently removed.",
-                  })
-                ) {
-                  removeGift(gift.id);
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
           </div>
         ),
-      },
-    ],
-    [confirm, openEditDialog, removeGift],
-  );
+      });
+    }
+
+    return base;
+  }, [openEditDialog, isOwner]);
 
   return (
     <div className="space-y-4">
