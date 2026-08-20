@@ -25,7 +25,6 @@ export function PlanTab({ weddingId }: { weddingId: number }) {
 
   const [method, setMethod] = useState<"khqr" | "aba" | "bank">("khqr");
   const [reference, setReference] = useState("");
-  const [changing, setChanging] = useState(false);
 
   if (isLoading) return <PageLoader label="Loading your plan..." />;
 
@@ -34,120 +33,113 @@ export function PlanTab({ weddingId }: { weddingId: number }) {
   const status = subscription?.status;
   const activePackages = (packages ?? []).filter((pkg) => pkg.is_active);
 
-  const choosePackage = (packageId: number) =>
-    selectPackage.mutate(packageId, { onSuccess: () => setChanging(false) });
+  const choosePackage = (packageId: number) => selectPackage.mutate(packageId);
 
-  // 1) Active — plan is locked in. Free plans activate on selection (no
-  //    payment); paid plans reach here once an admin confirms the payment.
-  //    While "changing" (free → upgrade) we fall through to the picker.
-  if (status === "paid" && !changing) {
+  const packageGrid = (
+    <div className="space-y-4 pt-2">
+      {status === "rejected" ? (
+        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          Your previous payment was rejected. Please re-select a plan and submit again.
+        </p>
+      ) : null}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {activePackages.map((pkg) => (
+          <Card key={pkg.id} className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>{pkg.name}</span>
+                <Badge variant="secondary">
+                  {(pkg.price ?? 0) <= 0
+                    ? "Free"
+                    : formatMoney(pkg.price ?? 0, pkg.currency ?? "USD")}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col gap-3">
+              {pkg.description ? (
+                <p className="text-sm text-zinc-500">{pkg.description}</p>
+              ) : null}
+              <ul className="flex-1 space-y-1 text-sm text-zinc-600">
+                {(pkg.features ?? []).map((feature) => (
+                  <li key={feature} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                className="w-full"
+                disabled={selectPackage.isPending || subscription?.package?.id === pkg.id}
+                onClick={() => choosePackage(pkg.id)}
+              >
+                <CreditCard className="h-4 w-4" />
+                {subscription?.package?.id === pkg.id ? "Current Plan" : `Choose ${pkg.name}`}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  // 1) Active — plan is locked in. Free plans activate on selection (no payment); 
+  //    paid plans reach here once an admin confirms the payment.
+  if (status === "paid") {
     const isFree = (subscription?.amount ?? 0) <= 0;
     return (
-      <Card>
-        <CardContent className="flex items-start justify-between gap-4 p-6">
-          <div className="flex items-start gap-4">
-            <div className="rounded-lg bg-emerald-100 p-2.5 text-emerald-700">
-              <CheckCircle2 className="h-5 w-5" />
+      <div className="space-y-5">
+        <Card>
+          <CardContent className="flex flex-col gap-6 p-6">
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg bg-emerald-100 p-2.5 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-zinc-900">
+                  {subscription?.package?.name} plan — {isFree ? "active" : "paid"}
+                </p>
+                <p className="text-sm text-zinc-500">
+                  {isFree
+                    ? "Your free plan is active. Upgrade any time to unlock more features."
+                    : `${formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")} confirmed. Thank you! Your wedding has full access.`}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-zinc-900">
-                {subscription?.package?.name} plan — {isFree ? "active" : "paid"}
-              </p>
-              <p className="text-sm text-zinc-500">
-                {isFree
-                  ? "Your free plan is active. Upgrade any time to unlock more features."
-                  : `${formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")} confirmed. Thank you! Your wedding has full access.`}
-              </p>
-            </div>
-          </div>
-          {isFree ? (
-            <Button variant="outline" size="sm" onClick={() => setChanging(true)}>
-              Upgrade plan
-            </Button>
-          ) : null}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        {packageGrid}
+      </div>
     );
   }
 
   // 2) Submitted — awaiting admin confirmation.
   if (status === "submitted") {
     return (
-      <Card>
-        <CardContent className="flex items-start gap-4 p-6">
-          <div className="rounded-lg bg-amber-100 p-2.5 text-amber-700">
-            <Clock className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-semibold text-zinc-900">Payment submitted</p>
-            <p className="text-sm text-zinc-500">
-              We received your payment for the {subscription?.package?.name} plan
-              ({formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")}).
-              Reference <span className="font-mono">{subscription?.payment_reference}</span>.
-              An administrator will confirm it shortly.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-5">
+        <Card>
+          <CardContent className="flex items-start gap-4 p-6">
+            <div className="rounded-lg bg-amber-100 p-2.5 text-amber-700">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-zinc-900">Payment submitted</p>
+              <p className="text-sm text-zinc-500">
+                We received your payment for the {subscription?.package?.name} plan
+                ({formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")}).
+                Reference <span className="font-mono">{subscription?.payment_reference}</span>.
+                An administrator will confirm it shortly.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        {packageGrid}
+      </div>
     );
   }
 
-  // 3) Package picker — when nothing selected, previous payment rejected, or
-  //    the couple chose to change their plan.
-  const showPicker = !subscription || status === "rejected" || changing;
-
-  if (showPicker) {
-    return (
-      <div className="space-y-4">
-        {status === "rejected" ? (
-          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            Your previous payment was rejected. Please re-select a plan and submit again.
-          </p>
-        ) : null}
-        {changing ? (
-          <Button variant="ghost" size="sm" onClick={() => setChanging(false)}>
-            ← Back
-          </Button>
-        ) : null}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {activePackages.map((pkg) => (
-            <Card key={pkg.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{pkg.name}</span>
-                  <Badge variant="secondary">
-                    {(pkg.price ?? 0) <= 0
-                      ? "Free"
-                      : formatMoney(pkg.price ?? 0, pkg.currency ?? "USD")}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3">
-                {pkg.description ? (
-                  <p className="text-sm text-zinc-500">{pkg.description}</p>
-                ) : null}
-                <ul className="flex-1 space-y-1 text-sm text-zinc-600">
-                  {(pkg.features ?? []).map((feature) => (
-                    <li key={feature} className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="w-full"
-                  disabled={selectPackage.isPending}
-                  onClick={() => choosePackage(pkg.id)}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  Choose {pkg.name}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+  // 3) Package picker — when nothing selected, previous payment rejected
+  if (!subscription || status === "rejected") {
+    return packageGrid;
   }
 
   // 4) Pending (package selected) — show payment instructions + form.
@@ -157,16 +149,13 @@ export function PlanTab({ weddingId }: { weddingId: number }) {
         <CardHeader>
           <CardTitle>Your selected plan</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+        <CardContent className="flex flex-col gap-4">
           <div>
             <p className="font-semibold text-zinc-900">{subscription?.package?.name}</p>
             <p className="text-sm text-zinc-500">
               {formatMoney(subscription?.amount ?? 0, subscription?.currency ?? "USD")}
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setChanging(true)}>
-            Change plan
-          </Button>
         </CardContent>
       </Card>
 
@@ -241,6 +230,8 @@ export function PlanTab({ weddingId }: { weddingId: number }) {
           </form>
         </CardContent>
       </Card>
+      
+      {packageGrid}
     </div>
   );
 }
