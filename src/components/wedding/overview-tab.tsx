@@ -1,24 +1,5 @@
 "use client";
 
-import {
-  Ban,
-  CheckCircle2,
-  DollarSign,
-  FileText,
-  Globe,
-  HelpCircle,
-  type LucideIcon,
-  Pencil,
-  RotateCcw,
-  TrendingDown,
-  TrendingUp,
-  UserPlus,
-  Users,
-  XCircle,
-  Trash2,
-} from "lucide-react";
-import { type ComponentProps, useState } from "react";
-import { useForm } from "react-hook-form";
 import { Badge, statusVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,8 +15,8 @@ import { useGiftSummary } from "@/hooks/use-gifts";
 import {
   useChangeWeddingStatus,
   useInviteMember,
-  useUpdateMember,
   useRemoveMember,
+  useUpdateMember,
   useUpdateWedding,
   useWeddingDashboard,
   useWeddingMembers,
@@ -43,7 +24,24 @@ import {
 import { apiErrorMessage } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
-import type { Wedding, WeddingStatus, WeddingMember } from "@/types/api";
+import type { Wedding, WeddingMember, WeddingStatus } from "@/types/api";
+import {
+  Ban,
+  CheckCircle2,
+  DollarSign,
+  FileText,
+  Globe,
+  type LucideIcon,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from "lucide-react";
+import { type ComponentProps, useState } from "react";
+import { useForm } from "react-hook-form";
 
 interface EditForm {
   wedding_name: string;
@@ -200,13 +198,19 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
   const [error, setError] = useState<string | null>(null);
 
   const [editMemberOpen, setEditMemberOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<WeddingMember | null>(null);
+  const [editingMember, setEditingMember] = useState<WeddingMember | null>(
+    null,
+  );
   const [memberError, setMemberError] = useState<string | null>(null);
   const editMemberForm = useForm<{ member_role: string }>();
 
   const [deleteMemberOpen, setDeleteMemberOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<WeddingMember | null>(null);
-  const [deleteMemberError, setDeleteMemberError] = useState<string | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<WeddingMember | null>(
+    null,
+  );
+  const [deleteMemberError, setDeleteMemberError] = useState<string | null>(
+    null,
+  );
 
   const [editOpen, setEditOpen] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -266,7 +270,9 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         bride_name: values.bride_name,
         groom_name: values.groom_name,
         wedding_date: values.wedding_date || null,
-        wedding_time: values.wedding_time ? values.wedding_time.slice(0, 5) : null,
+        wedding_time: values.wedding_time
+          ? values.wedding_time.slice(0, 5)
+          : null,
         phone: values.phone || null,
         email: values.email || null,
         ceremony_venue: values.ceremony_venue || null,
@@ -304,7 +310,9 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         <CardContent className="p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-3">
-              <div className={`shrink-0 rounded-lg p-2.5 ${statusMeta.iconWrap}`}>
+              <div
+                className={`shrink-0 rounded-lg p-2.5 ${statusMeta.iconWrap}`}
+              >
                 <StatusIcon className="h-5 w-5" />
               </div>
               <div>
@@ -347,20 +355,7 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         </CardContent>
       </Card>
 
-      {isLoading || !dashboard ? (
-        <PageLoader label="Loading statistics..." />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            label="Total Guests"
-            value={dashboard.rsvp.total_guests}
-            icon={Users}
-            accent="emerald"
-          />
-        </div>
-      )}
-
-      {giftSummary || expenseSummary ? (() => {
+      {(() => {
         const incomeUsd = giftSummary?.total_cash_amount_usd ?? 0;
         const incomeKhr = giftSummary?.total_cash_amount_khr ?? 0;
         const expensesUsd = expenseSummary?.total_amount_usd ?? 0;
@@ -372,8 +367,18 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         const netKhr = netUsd * 4000;
         const isLoss = netUsd < 0;
 
+        if (isLoading || !dashboard) {
+          return <PageLoader label="Loading statistics..." />;
+        }
+
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="Total Guests"
+              value={dashboard.rsvp.total_guests}
+              icon={Users}
+              accent="emerald"
+            />
             <StatCard
               label="Gift Income"
               value={
@@ -398,26 +403,36 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               icon={TrendingDown}
               accent="rose"
             />
-            <div className={`flex items-center gap-4 rounded-lg border p-5 ${isLoss ? "border-rose-100 bg-rose-50" : "border-emerald-100 bg-emerald-50"}`}>
-              <div className={`shrink-0 rounded-lg p-2.5 ${isLoss ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+            <div
+              className={`flex items-center gap-4 rounded-lg border p-5 ${isLoss ? "border-rose-100 bg-rose-50" : "border-emerald-100 bg-emerald-50"}`}
+            >
+              <div
+                className={`shrink-0 rounded-lg p-2.5 ${isLoss ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}
+              >
                 <DollarSign className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-zinc-500">{isLoss ? "Net Loss" : "Net Profit"}</p>
+                <p className="text-sm text-zinc-500">
+                  {isLoss ? "Net Loss" : "Net Profit"}
+                </p>
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <span className={`text-2xl font-semibold ${isLoss ? "text-rose-700" : "text-emerald-700"}`}>
+                  <span
+                    className={`text-2xl font-semibold ${isLoss ? "text-rose-700" : "text-emerald-700"}`}
+                  >
                     {formatMoney(netUsd, "USD")}
                   </span>
                   <span className="text-sm font-medium text-zinc-400">
                     ({formatMoney(netKhr, "KHR")})
                   </span>
                 </div>
-                <p className="text-xs text-zinc-400 mt-0.5">{isLoss ? "loss / deficit" : "surplus"}</p>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  {isLoss ? "loss / deficit" : "surplus"}
+                </p>
               </div>
             </div>
           </div>
         );
-      })() : null}
+      })()}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -433,7 +448,10 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
               <InfoRow label="Phone" value={wedding.phone ?? "—"} />
               <InfoRow label="Email" value={wedding.email ?? "—"} />
               <InfoRow label="Ceremony" value={wedding.ceremony_venue ?? "—"} />
-              <InfoRow label="Reception" value={wedding.reception_venue ?? "—"} />
+              <InfoRow
+                label="Reception"
+                value={wedding.reception_venue ?? "—"}
+              />
               <InfoRow
                 label="Package"
                 value={
@@ -484,7 +502,11 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                   onClick={() => {
                     setInviteError(null);
                     setInvitedCredentials(null);
-                    inviteForm.reset({ name: "", email: "", member_role: "groom" });
+                    inviteForm.reset({
+                      name: "",
+                      email: "",
+                      member_role: "groom",
+                    });
                     setInviteOpen(true);
                   }}
                 >
@@ -507,18 +529,24 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                           {member.user?.name}
                         </p>
                         {member.user?.id === wedding.created_by?.id && (
-                          <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-zinc-50">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] uppercase tracking-wider bg-zinc-50"
+                          >
                             Owner
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-500">{member.user?.email}</p>
+                      <p className="text-xs text-zinc-500">
+                        {member.user?.email}
+                      </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge variant={statusVariant(member.member_role)}>
                         <span className="capitalize">{member.member_role}</span>
                       </Badge>
-                      {(canManageStatus || member.user?.id === currentUser?.id) && (
+                      {(canManageStatus ||
+                        member.user?.id === currentUser?.id) && (
                         <div className="flex items-center gap-1">
                           <Button
                             size="icon"
@@ -527,26 +555,30 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                             onClick={() => {
                               setMemberError(null);
                               setEditingMember(member);
-                              editMemberForm.reset({ member_role: member.member_role });
+                              editMemberForm.reset({
+                                member_role: member.member_role,
+                              });
                               setEditMemberOpen(true);
                             }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {canManageStatus && member.user?.id !== wedding.created_by?.id && member.user?.id !== currentUser?.id && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 text-red-500 hover:text-red-700"
-                              onClick={() => {
-                                setDeleteMemberError(null);
-                                setMemberToDelete(member);
-                                setDeleteMemberOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                          {canManageStatus &&
+                            member.user?.id !== wedding.created_by?.id &&
+                            member.user?.id !== currentUser?.id && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-red-500 hover:text-red-700"
+                                onClick={() => {
+                                  setDeleteMemberError(null);
+                                  setMemberToDelete(member);
+                                  setDeleteMemberOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                         </div>
                       )}
                     </div>
@@ -571,16 +603,12 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                       className="flex items-center justify-between text-sm"
                     >
                       <span className="text-zinc-600">{group.group}</span>
-                      <span className="font-medium text-zinc-900">{group.total}</span>
+                      <span className="font-medium text-zinc-900">
+                        {group.total}
+                      </span>
                     </div>
                   ))
                 )}
-                <div className="mt-2 flex items-center justify-between border-t border-zinc-100 pt-2 text-sm">
-                  <span className="text-zinc-600">Tables / Capacity</span>
-                  <span className="font-medium text-zinc-900">
-                    {dashboard.tables.total} / {dashboard.tables.capacity} seats
-                  </span>
-                </div>
               </CardContent>
             </Card>
           ) : null}
@@ -611,30 +639,51 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         </div>
       </Dialog>
 
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="Edit wedding details">
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="Edit wedding details"
+      >
         <form onSubmit={onEdit} className="space-y-3">
           <div>
             <Label htmlFor="e-name">Wedding name</Label>
-            <Input id="e-name" {...editForm.register("wedding_name", { required: true })} />
+            <Input
+              id="e-name"
+              {...editForm.register("wedding_name", { required: true })}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="e-bride">Bride name</Label>
-              <Input id="e-bride" {...editForm.register("bride_name", { required: true })} />
+              <Input
+                id="e-bride"
+                {...editForm.register("bride_name", { required: true })}
+              />
             </div>
             <div>
               <Label htmlFor="e-groom">Groom name</Label>
-              <Input id="e-groom" {...editForm.register("groom_name", { required: true })} />
+              <Input
+                id="e-groom"
+                {...editForm.register("groom_name", { required: true })}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label htmlFor="e-date">Date</Label>
-              <Input id="e-date" type="date" {...editForm.register("wedding_date")} />
+              <Input
+                id="e-date"
+                type="date"
+                {...editForm.register("wedding_date")}
+              />
             </div>
             <div>
               <Label htmlFor="e-time">Time</Label>
-              <Input id="e-time" type="time" {...editForm.register("wedding_time")} />
+              <Input
+                id="e-time"
+                type="time"
+                {...editForm.register("wedding_time")}
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -644,7 +693,11 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
             </div>
             <div>
               <Label htmlFor="e-email">Email</Label>
-              <Input id="e-email" type="email" {...editForm.register("email")} />
+              <Input
+                id="e-email"
+                type="email"
+                {...editForm.register("email")}
+              />
             </div>
           </div>
           <div>
@@ -661,11 +714,21 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
           </div>
           <div>
             <Label htmlFor="e-story">Your story</Label>
-            <Textarea id="e-story" rows={3} {...editForm.register("story_description")} />
+            <Textarea
+              id="e-story"
+              rows={3}
+              {...editForm.register("story_description")}
+            />
           </div>
-          {editError ? <p className="text-sm text-red-600">{editError}</p> : null}
+          {editError ? (
+            <p className="text-sm text-red-600">{editError}</p>
+          ) : null}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={updateWedding.isPending}>
@@ -675,7 +738,11 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         </form>
       </Dialog>
 
-      <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} title="Add member">
+      <Dialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        title="Add member"
+      >
         {invitedCredentials ? (
           <div className="space-y-3">
             <p className="text-sm text-zinc-600">
@@ -683,7 +750,8 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
             </p>
             <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm">
               <p>
-                <span className="font-medium">Email:</span> {invitedCredentials.email}
+                <span className="font-medium">Email:</span>{" "}
+                {invitedCredentials.email}
               </p>
               <p>
                 <span className="font-medium">Temporary password:</span>{" "}
@@ -714,7 +782,10 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
             </p>
             <div>
               <Label htmlFor="i-name">Name</Label>
-              <Input id="i-name" {...inviteForm.register("name", { required: true })} />
+              <Input
+                id="i-name"
+                {...inviteForm.register("name", { required: true })}
+              />
             </div>
             <div>
               <Label htmlFor="i-email">Email</Label>
@@ -732,9 +803,15 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
                 <option value="member">Member</option>
               </Select>
             </div>
-            {inviteError ? <p className="text-sm text-red-600">{inviteError}</p> : null}
+            {inviteError ? (
+              <p className="text-sm text-red-600">{inviteError}</p>
+            ) : null}
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setInviteOpen(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={inviteMember.isPending}>
@@ -745,7 +822,11 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         )}
       </Dialog>
 
-      <Dialog open={editMemberOpen} onClose={() => setEditMemberOpen(false)} title="Edit member role">
+      <Dialog
+        open={editMemberOpen}
+        onClose={() => setEditMemberOpen(false)}
+        title="Edit member role"
+      >
         <form
           onSubmit={editMemberForm.handleSubmit(async (values) => {
             if (!editingMember) return;
@@ -764,15 +845,24 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         >
           <div>
             <Label htmlFor="edit-m-role">Role</Label>
-            <Select id="edit-m-role" {...editMemberForm.register("member_role")}>
+            <Select
+              id="edit-m-role"
+              {...editMemberForm.register("member_role")}
+            >
               <option value="bride">Bride</option>
               <option value="groom">Groom</option>
               <option value="member">Member</option>
             </Select>
           </div>
-          {memberError ? <p className="text-sm text-red-600">{memberError}</p> : null}
+          {memberError ? (
+            <p className="text-sm text-red-600">{memberError}</p>
+          ) : null}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setEditMemberOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditMemberOpen(false)}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={updateMember.isPending}>
@@ -789,7 +879,9 @@ export function OverviewTab({ wedding }: { wedding: Wedding }) {
         description="Are you sure you want to remove this member? They will lose access to manage this wedding."
       >
         <div className="space-y-4 pt-2">
-          {deleteMemberError ? <p className="text-sm text-red-600">{deleteMemberError}</p> : null}
+          {deleteMemberError ? (
+            <p className="text-sm text-red-600">{deleteMemberError}</p>
+          ) : null}
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
