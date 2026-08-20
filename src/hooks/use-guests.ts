@@ -118,6 +118,15 @@ export function useBulkInvite(weddingId: number) {
   });
 }
 
+export function useBulkGroup(weddingId: number) {
+  const invalidate = useInvalidateGuests(weddingId);
+  return useMutation({
+    mutationFn: ({ guestIds, groupId }: { guestIds?: number[]; groupId: number }) =>
+      guestService.bulkGroup(weddingId, guestIds, groupId),
+    onSuccess: invalidate,
+  });
+}
+
 export function useCreateGuestGroup(weddingId: number) {
   const queryClient = useQueryClient();
   return useMutation({

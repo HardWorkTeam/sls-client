@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import {
   useBulkInvite,
+  useBulkGroup,
   useCheckInStats,
   useCreateGuest,
   useCreateGuestGroup,
@@ -103,6 +104,7 @@ export function GuestsTab({
   const [selected, setSelected] = useState<number[]>([]);
   const [isAllMatchingSelected, setIsAllMatchingSelected] = useState(false);
   const [bulkInvitationId, setBulkInvitationId] = useState("");
+  const [bulkGroupId, setBulkGroupId] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -139,6 +141,7 @@ export function GuestsTab({
   const deleteAllGuests = useDeleteAllGuests(weddingId);
   const importGuests = useImportGuests(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
+  const bulkGroup = useBulkGroup(weddingId);
   const createGroup = useCreateGuestGroup(weddingId);
   const updateGroup = useUpdateGuestGroup(weddingId);
   const deleteGroup = useDeleteGuestGroup(weddingId);
@@ -315,6 +318,26 @@ export function GuestsTab({
       const result = await bulkInvite.mutateAsync({
         guestIds: targetIds,
         invitationId: Number(bulkInvitationId),
+      });
+      setFeedback(result.message);
+      setSelected([]);
+      setIsAllMatchingSelected(false);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  };
+
+  const onBulkGroup = async () => {
+    if (!bulkGroupId || (selected.length === 0 && !isAllMatchingSelected))
+      return;
+    setError(null);
+    try {
+      const targetIds = isAllMatchingSelected
+        ? undefined
+        : selected;
+      const result = await bulkGroup.mutateAsync({
+        guestIds: targetIds,
+        groupId: Number(bulkGroupId),
       });
       setFeedback(result.message);
       setSelected([]);
@@ -551,6 +574,30 @@ export function GuestsTab({
                   disabled={!bulkInvitationId || bulkInvite.isPending}
                 >
                   Bulk Invite
+                </Button>
+              </>
+            ) : null}
+
+            {(groups ?? []).length > 0 ? (
+              <>
+                <Select
+                  className="h-8 min-w-0 w-full text-xs sm:w-52"
+                  value={bulkGroupId}
+                  onChange={(event) => setBulkGroupId(event.target.value)}
+                >
+                  <option value="">Choose group...</option>
+                  {(groups ?? []).map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={onBulkGroup}
+                  disabled={!bulkGroupId || bulkGroup.isPending}
+                >
+                  Group
                 </Button>
               </>
             ) : null}

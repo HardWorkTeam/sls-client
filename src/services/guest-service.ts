@@ -96,6 +96,14 @@ export const guestService = {
     return data;
   },
 
+  async bulkGroup(weddingId: number, guestIds: number[] | undefined, groupId: number) {
+    const { data } = await api.post<{ message: string }>(
+      `/weddings/${weddingId}/guests/bulk-group`,
+      { guest_ids: guestIds, guest_group_id: groupId },
+    );
+    return data;
+  },
+
   // --- Wedding-day check-in -------------------------------------------------
 
   /** Mark a guest as arrived by their scanned QR token. */
