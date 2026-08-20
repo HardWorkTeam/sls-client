@@ -111,7 +111,7 @@ export function ClientShell({ children }: { children: ReactNode }) {
   // features while the upgrade payment awaits confirmation.
   const isPaid = wedding?.has_active_plan ?? wedding?.payment_status === "paid";
   const capabilities = wedding?.capabilities;
-  const isFreePackage = wedding?.package != null && Number(wedding.package.price || 0) === 0;
+  const isFreePackage = wedding?.package == null || Number(wedding.package.price || 0) === 0;
 
   const navItems = NAV_ITEMS.filter((item) => {
     if (item.hideOnFree && isFreePackage) return false;
