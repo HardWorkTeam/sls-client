@@ -59,13 +59,21 @@ export const guestService = {
     return data;
   },
 
-  async importCsv(weddingId: number, file: File) {
+  async previewImport(weddingId: number, file: File) {
     const form = new FormData();
     form.append("file", file);
     const { data } = await api.post<{
       message: string;
+      data: { parsed: any[]; errors: string[] };
+    }>(`/weddings/${weddingId}/guests/import/preview`, form);
+    return data.data;
+  },
+
+  async confirmImport(weddingId: number, guests: any[]) {
+    const { data } = await api.post<{
+      message: string;
       data: { imported: number; skipped: number; errors: string[] };
-    }>(`/weddings/${weddingId}/guests/import`, form);
+    }>(`/weddings/${weddingId}/guests/import/confirm`, { guests });
     return data;
   },
 

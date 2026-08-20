@@ -35,7 +35,7 @@ import {
   useDeleteGuestGroup,
   useGuestGroups,
   useGuests,
-  useImportGuests,
+  usePreviewImport,
   useSetCheckIn,
   useUpdateGuest,
   useUpdateGuestGroup,
@@ -66,6 +66,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CheckInScanner } from "./check-in-scanner";
 import { GuestQrDialog } from "./guest-qr-dialog";
+import { ImportPreviewDialog } from "./import-preview-dialog";
 
 const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
 
@@ -139,7 +140,7 @@ export function GuestsTab({
   const updateGuest = useUpdateGuest(weddingId);
   const deleteGuest = useDeleteGuest(weddingId);
   const deleteAllGuests = useDeleteAllGuests(weddingId);
-  const importGuests = useImportGuests(weddingId);
+  const previewImport = usePreviewImport(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
   const bulkGroup = useBulkGroup(weddingId);
   const createGroup = useCreateGuestGroup(weddingId);
@@ -286,12 +287,19 @@ export function GuestsTab({
     }
   });
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+
   const onImport = async (file: File) => {
     setFeedback(null);
     setError(null);
     try {
-      const result = await importGuests.mutateAsync(file);
-      setFeedback(result.message);
+      const result = await previewImport.mutateAsync(file);
+      setPreviewData(result.parsed);
+      setPreviewOpen(true);
+      if (result.errors && result.errors.length > 0) {
+        setError(`Parsed with some warnings. ${result.errors.length} rows skipped.`);
+      }
     } catch (err) {
       setError(apiErrorMessage(err));
     }
@@ -420,8 +428,10 @@ export function GuestsTab({
               variant="outline"
               size="sm"
               onClick={() => fileInput.current?.click()}
+              disabled={previewImport.isPending}
             >
-              <Download className="h-4 w-4" /> Import Excel
+              <Download className={cn("h-4 w-4", previewImport.isPending && "animate-pulse")} /> 
+              {previewImport.isPending ? "Parsing..." : "Import Excel"}
             </Button>
             <Button variant="outline" size="sm" onClick={onExport}>
               <Upload className="h-4 w-4" /> Export
@@ -1012,6 +1022,16 @@ export function GuestsTab({
           ) : null}
         </div>
       </Dialog>
+
+      <ImportPreviewDialog
+        weddingId={weddingId}
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        initialData={previewData}
+        guestTotal={guestTotal}
+        guestLimit={guestLimit}
+        onSuccess={(msg) => setFeedback(msg)}
+      />
 
       {/* Wedding-day check-in scanner */}
       <Dialog

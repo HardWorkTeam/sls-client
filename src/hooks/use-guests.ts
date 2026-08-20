@@ -101,10 +101,16 @@ export function useDeleteAllGuests(weddingId: number) {
   });
 }
 
-export function useImportGuests(weddingId: number) {
+export function usePreviewImport(weddingId: number) {
+  return useMutation({
+    mutationFn: (file: File) => guestService.previewImport(weddingId, file),
+  });
+}
+
+export function useConfirmImport(weddingId: number) {
   const invalidate = useInvalidateGuests(weddingId);
   return useMutation({
-    mutationFn: (file: File) => guestService.importCsv(weddingId, file),
+    mutationFn: (guests: any[]) => guestService.confirmImport(weddingId, guests),
     onSuccess: invalidate,
   });
 }
