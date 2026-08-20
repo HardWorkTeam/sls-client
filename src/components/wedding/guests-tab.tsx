@@ -70,7 +70,7 @@ const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
 
 const guestSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  phone: z.string().optional(),
+  phone: z.string().min(1, "Phone number is required"),
   email: z.string().email().optional().or(z.literal("")),
   address: z.string().optional(),
   note: z.string().optional(),
@@ -767,7 +767,11 @@ export function GuestsTab({
           {(field) => <Input {...field} {...form.register("name")} />}
         </FormField>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Phone">
+          <FormField
+            label="Phone"
+            required
+            error={form.formState.errors.phone?.message}
+          >
             {(field) => <Input {...field} {...form.register("phone")} />}
           </FormField>
           <FormField label="Email" error={form.formState.errors.email?.message}>
