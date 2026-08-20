@@ -6,6 +6,7 @@ export interface GuestListParams {
   search?: string;
   guest_group_id?: number;
   is_vip?: boolean;
+  sort?: string;
   page?: number;
   per_page?: number;
 }

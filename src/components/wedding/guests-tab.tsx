@@ -96,6 +96,7 @@ export function GuestsTab({
 }) {
   const [search, setSearch] = useState("");
   const [groupId, setGroupId] = useState("");
+  const [sort, setSort] = useState("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Guest | null>(null);
@@ -125,6 +126,7 @@ export function GuestsTab({
   const guestsQuery = useGuests(weddingId, {
     search: search || undefined,
     guest_group_id: groupId ? Number(groupId) : undefined,
+    sort: sort || undefined,
     page,
   });
   const data = guestsQuery.data;
@@ -448,6 +450,18 @@ export function GuestsTab({
               {group.name}
             </option>
           ))}
+        </Select>
+        <Select
+          className="w-40"
+          aria-label="Sort guests"
+          value={sort}
+          onChange={(event) => {
+            setSort(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Sort by name</option>
+          <option value="latest">Latest added</option>
         </Select>
       </Toolbar>
 
