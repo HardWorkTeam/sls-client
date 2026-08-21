@@ -101,10 +101,16 @@ export function useDeleteAllGuests(weddingId: number) {
   });
 }
 
-export function useImportGuests(weddingId: number) {
+export function usePreviewImport(weddingId: number) {
+  return useMutation({
+    mutationFn: (file: File) => guestService.previewImport(weddingId, file),
+  });
+}
+
+export function useConfirmImport(weddingId: number) {
   const invalidate = useInvalidateGuests(weddingId);
   return useMutation({
-    mutationFn: (file: File) => guestService.importCsv(weddingId, file),
+    mutationFn: (guests: any[]) => guestService.confirmImport(weddingId, guests),
     onSuccess: invalidate,
   });
 }
@@ -114,6 +120,15 @@ export function useBulkInvite(weddingId: number) {
   return useMutation({
     mutationFn: ({ guestIds, invitationId }: { guestIds?: number[]; invitationId: number }) =>
       guestService.bulkInvite(weddingId, guestIds, invitationId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useBulkGroup(weddingId: number) {
+  const invalidate = useInvalidateGuests(weddingId);
+  return useMutation({
+    mutationFn: ({ guestIds, groupId }: { guestIds?: number[]; groupId: number }) =>
+      guestService.bulkGroup(weddingId, guestIds, groupId),
     onSuccess: invalidate,
   });
 }

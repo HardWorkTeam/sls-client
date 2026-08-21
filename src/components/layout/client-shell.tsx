@@ -32,19 +32,20 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react
 // Nav gating flags:
 // - `module`        → shown only when the selected package includes it.
 // - `requiresPackage` → shown only once SOME package is selected.
-// Items with neither are always visible (My Wedding, Plan & Payment,
-// Invitations, Settings) so a couple with no package can still set up their
-// wedding, create invitations, and choose a plan.
+// Items with neither are always visible (My Wedding, Plan & Payment, Settings)
+// so a couple with no package can still set up their
+// wedding and choose a plan.
 const NAV_ITEMS: {
   href: string;
   label: string;
   icon: typeof Heart;
   module?: GatedModule;
   requiresPackage?: boolean;
+  hideOnFree?: boolean;
 }[] = [
   { href: "/my-wedding", label: "My Wedding", icon: Heart },
   { href: "/plan", label: "Plan & Payment", icon: CreditCard },
-  { href: "/invitations", label: "Invitations", icon: Mail },
+  { href: "/invitations", label: "Invitations", icon: Mail, hideOnFree: true },
   { href: "/guests", label: "Guest List", icon: Users, requiresPackage: true },
   {
     href: "/rsvp",
@@ -104,13 +105,16 @@ export function ClientShell({ children }: { children: ReactNode }) {
   // selected, awaiting confirmation, or rejected stays locked. `module` items
   // need that module in the paid package; `requiresPackage` items need any
   // paid plan. Until then only the always-visible items (My Wedding, Plan &
-  // Payment, Invitations, Settings) show.
+  // Payment, Settings) show.
   // `has_active_plan` (any paid subscription) rather than `payment_status`
   // (the latest subscription): a Free-plan couple upgrading keeps their Free
   // features while the upgrade payment awaits confirmation.
   const isPaid = wedding?.has_active_plan ?? wedding?.payment_status === "paid";
   const capabilities = wedding?.capabilities;
+  const isFreePackage = wedding?.package == null || Number(wedding.package.price || 0) === 0;
+
   const navItems = NAV_ITEMS.filter((item) => {
+    if (item.hideOnFree && isFreePackage) return false;
     if (item.module) return Boolean(capabilities?.modules[item.module]);
     if (item.requiresPackage) return isPaid;
     return true;

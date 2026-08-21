@@ -6,6 +6,7 @@ export interface GuestListParams {
   search?: string;
   guest_group_id?: number;
   is_vip?: boolean;
+  sort?: string;
   page?: number;
   per_page?: number;
 }
@@ -58,13 +59,21 @@ export const guestService = {
     return data;
   },
 
-  async importCsv(weddingId: number, file: File) {
+  async previewImport(weddingId: number, file: File) {
     const form = new FormData();
     form.append("file", file);
     const { data } = await api.post<{
       message: string;
+      data: { parsed: any[]; errors: string[] };
+    }>(`/weddings/${weddingId}/guests/import/preview`, form);
+    return data.data;
+  },
+
+  async confirmImport(weddingId: number, guests: any[]) {
+    const { data } = await api.post<{
+      message: string;
       data: { imported: number; skipped: number; errors: string[] };
-    }>(`/weddings/${weddingId}/guests/import`, form);
+    }>(`/weddings/${weddingId}/guests/import/confirm`, { guests });
     return data;
   },
 
@@ -91,6 +100,14 @@ export const guestService = {
     const { data } = await api.post<{ message: string }>(
       `/weddings/${weddingId}/guests/bulk-invite`,
       { guest_ids: guestIds, invitation_id: invitationId },
+    );
+    return data;
+  },
+
+  async bulkGroup(weddingId: number, guestIds: number[] | undefined, groupId: number) {
+    const { data } = await api.post<{ message: string }>(
+      `/weddings/${weddingId}/guests/bulk-group`,
+      { guest_ids: guestIds, guest_group_id: groupId },
     );
     return data;
   },

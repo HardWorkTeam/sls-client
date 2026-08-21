@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import {
   useBulkInvite,
+  useBulkGroup,
   useCheckInStats,
   useCreateGuest,
   useCreateGuestGroup,
@@ -34,7 +35,7 @@ import {
   useDeleteGuestGroup,
   useGuestGroups,
   useGuests,
-  useImportGuests,
+  usePreviewImport,
   useSetCheckIn,
   useUpdateGuest,
   useUpdateGuestGroup,
@@ -65,12 +66,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { CheckInScanner } from "./check-in-scanner";
 import { GuestQrDialog } from "./guest-qr-dialog";
+import { ImportPreviewDialog } from "./import-preview-dialog";
 
 const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
 
 const guestSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  phone: z.string().optional(),
+  phone: z.string().min(1, "Phone number is required"),
   email: z.string().email().optional().or(z.literal("")),
   address: z.string().optional(),
   note: z.string().optional(),
@@ -96,12 +98,14 @@ export function GuestsTab({
 }) {
   const [search, setSearch] = useState("");
   const [groupId, setGroupId] = useState("");
+  const [sort, setSort] = useState("");
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Guest | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [isAllMatchingSelected, setIsAllMatchingSelected] = useState(false);
   const [bulkInvitationId, setBulkInvitationId] = useState("");
+  const [bulkGroupId, setBulkGroupId] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -125,6 +129,7 @@ export function GuestsTab({
   const guestsQuery = useGuests(weddingId, {
     search: search || undefined,
     guest_group_id: groupId ? Number(groupId) : undefined,
+    sort: sort || undefined,
     page,
   });
   const data = guestsQuery.data;
@@ -135,8 +140,9 @@ export function GuestsTab({
   const updateGuest = useUpdateGuest(weddingId);
   const deleteGuest = useDeleteGuest(weddingId);
   const deleteAllGuests = useDeleteAllGuests(weddingId);
-  const importGuests = useImportGuests(weddingId);
+  const previewImport = usePreviewImport(weddingId);
   const bulkInvite = useBulkInvite(weddingId);
+  const bulkGroup = useBulkGroup(weddingId);
   const createGroup = useCreateGuestGroup(weddingId);
   const updateGroup = useUpdateGuestGroup(weddingId);
   const deleteGroup = useDeleteGuestGroup(weddingId);
@@ -281,12 +287,19 @@ export function GuestsTab({
     }
   });
 
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+
   const onImport = async (file: File) => {
     setFeedback(null);
     setError(null);
     try {
-      const result = await importGuests.mutateAsync(file);
-      setFeedback(result.message);
+      const result = await previewImport.mutateAsync(file);
+      setPreviewData(result.parsed);
+      setPreviewOpen(true);
+      if (result.errors && result.errors.length > 0) {
+        setError(`Parsed with some warnings. ${result.errors.length} rows skipped.`);
+      }
     } catch (err) {
       setError(apiErrorMessage(err));
     }
@@ -313,6 +326,26 @@ export function GuestsTab({
       const result = await bulkInvite.mutateAsync({
         guestIds: targetIds,
         invitationId: Number(bulkInvitationId),
+      });
+      setFeedback(result.message);
+      setSelected([]);
+      setIsAllMatchingSelected(false);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  };
+
+  const onBulkGroup = async () => {
+    if (!bulkGroupId || (selected.length === 0 && !isAllMatchingSelected))
+      return;
+    setError(null);
+    try {
+      const targetIds = isAllMatchingSelected
+        ? undefined
+        : selected;
+      const result = await bulkGroup.mutateAsync({
+        guestIds: targetIds,
+        groupId: Number(bulkGroupId),
       });
       setFeedback(result.message);
       setSelected([]);
@@ -395,8 +428,10 @@ export function GuestsTab({
               variant="outline"
               size="sm"
               onClick={() => fileInput.current?.click()}
+              disabled={previewImport.isPending}
             >
-              <Download className="h-4 w-4" /> Import Excel
+              <Download className={cn("h-4 w-4", previewImport.isPending && "animate-pulse")} /> 
+              {previewImport.isPending ? "Parsing..." : "Import Excel"}
             </Button>
             <Button variant="outline" size="sm" onClick={onExport}>
               <Upload className="h-4 w-4" /> Export
@@ -448,6 +483,18 @@ export function GuestsTab({
               {group.name}
             </option>
           ))}
+        </Select>
+        <Select
+          className="w-40"
+          aria-label="Sort guests"
+          value={sort}
+          onChange={(event) => {
+            setSort(event.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Sort by name</option>
+          <option value="latest">Latest added</option>
         </Select>
       </Toolbar>
 
@@ -537,6 +584,30 @@ export function GuestsTab({
                   disabled={!bulkInvitationId || bulkInvite.isPending}
                 >
                   Bulk Invite
+                </Button>
+              </>
+            ) : null}
+
+            {(groups ?? []).length > 0 ? (
+              <>
+                <Select
+                  className="h-8 min-w-0 w-full text-xs sm:w-52"
+                  value={bulkGroupId}
+                  onChange={(event) => setBulkGroupId(event.target.value)}
+                >
+                  <option value="">Choose group...</option>
+                  {(groups ?? []).map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={onBulkGroup}
+                  disabled={!bulkGroupId || bulkGroup.isPending}
+                >
+                  Group
                 </Button>
               </>
             ) : null}
@@ -767,7 +838,11 @@ export function GuestsTab({
           {(field) => <Input {...field} {...form.register("name")} />}
         </FormField>
         <div className="grid grid-cols-2 gap-3">
-          <FormField label="Phone">
+          <FormField
+            label="Phone"
+            required
+            error={form.formState.errors.phone?.message}
+          >
             {(field) => <Input {...field} {...form.register("phone")} />}
           </FormField>
           <FormField label="Email" error={form.formState.errors.email?.message}>
@@ -947,6 +1022,16 @@ export function GuestsTab({
           ) : null}
         </div>
       </Dialog>
+
+      <ImportPreviewDialog
+        weddingId={weddingId}
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        initialData={previewData}
+        guestTotal={guestTotal}
+        guestLimit={guestLimit}
+        onSuccess={(msg) => setFeedback(msg)}
+      />
 
       {/* Wedding-day check-in scanner */}
       <Dialog
