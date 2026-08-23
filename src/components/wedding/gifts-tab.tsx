@@ -367,6 +367,23 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         className: "text-xs text-zinc-500",
         cell: (gift) => formatDateTime(gift.received_at),
       },
+      {
+        key: "updated",
+        header: "Updated At",
+        hideBelow: "lg",
+        className: "text-xs",
+        cell: (gift) => {
+          const wasEdited =
+            gift.updated_at &&
+            gift.created_at &&
+            gift.updated_at !== gift.created_at;
+          return (
+            <span className={wasEdited ? "text-amber-600 font-medium" : "text-zinc-400"}>
+              {wasEdited ? formatDateTime(gift.updated_at) : "—"}
+            </span>
+          );
+        },
+      },
     ];
 
     base.push({

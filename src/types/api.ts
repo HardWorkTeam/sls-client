@@ -276,6 +276,8 @@ export interface Gift {
   item_name: string | null;
   note: string | null;
   received_at: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   guest?: Guest | null;
 }
 
