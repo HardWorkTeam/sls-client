@@ -279,6 +279,14 @@ export interface Gift {
   guest?: Guest | null;
 }
 
+export interface GiftHistory {
+  id: number;
+  action: "created" | "updated";
+  changes: Record<string, [unknown, unknown]> | null;
+  actioned_at: string | null;
+  user: { id: number; name: string } | null;
+}
+
 export interface GiftSummary {
   total_gifts: number;
   total_cash_amount_usd: number;
