@@ -72,7 +72,7 @@ const GROUP_TYPES = ["family", "friends", "vip", "company", "custom"] as const;
 
 const guestSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  phone: z.string().min(1, "Phone number is required"),
+  phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   address: z.string().optional(),
   note: z.string().optional(),
@@ -271,6 +271,7 @@ export function GuestsTab({
     const payload = {
       ...values,
       email: values.email || null,
+      phone: values.phone || null,
       guest_group_id: values.guest_group_id
         ? Number(values.guest_group_id)
         : null,
