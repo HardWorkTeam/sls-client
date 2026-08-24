@@ -8,6 +8,8 @@ export const giftKeys = {
   list: (weddingId: number, params: object) =>
     ["weddings", weddingId, "gifts", "list", params] as const,
   summary: (weddingId: number) => ["weddings", weddingId, "gifts", "summary"] as const,
+  history: (weddingId: number, giftId: number) =>
+    ["weddings", weddingId, "gifts", giftId, "history"] as const,
 };
 
 export function useGifts(
@@ -54,5 +56,13 @@ export function useDeleteGift(weddingId: number) {
     mutationFn: (giftId: number) => giftService.remove(weddingId, giftId),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: giftKeys.all(weddingId) }),
+  });
+}
+
+export function useGiftHistory(weddingId: number, giftId: number | null) {
+  return useQuery({
+    queryKey: giftKeys.history(weddingId, giftId ?? 0),
+    queryFn: () => giftService.history(weddingId, giftId!),
+    enabled: weddingId > 0 && giftId != null,
   });
 }

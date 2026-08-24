@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 import { filenameFromContentDisposition } from "@/lib/utils";
-import type { Gift, GiftSummary, Paginated } from "@/types/api";
+import type { Gift, GiftHistory, GiftSummary, Paginated } from "@/types/api";
 
 export interface GiftPayload {
   guest_id?: number | null;
@@ -70,5 +70,12 @@ export const giftService = {
         "gifts.xlsx",
       ),
     };
+  },
+
+  async history(weddingId: number, giftId: number): Promise<GiftHistory[]> {
+    const { data } = await api.get<{ data: GiftHistory[] }>(
+      `/weddings/${weddingId}/gifts/${giftId}/history`,
+    );
+    return data.data;
   },
 };

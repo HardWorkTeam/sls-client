@@ -17,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { DualCurrencyValue, StatCard } from "@/components/ui/stat-card";
 import {
   useCreateGift,
+  useGiftHistory,
   useGifts,
   useGiftSummary,
   useUpdateGift,
@@ -33,6 +34,7 @@ import {
   ChevronDown,
   Download,
   Gift as GiftIcon,
+  History,
   Pencil,
   Plus,
   Search,
@@ -219,6 +221,7 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGift, setEditingGift] = useState<Gift | null>(null);
+  const [historyGift, setHistoryGift] = useState<Gift | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // `search` holds the settled (already debounced) term — SearchInput owns the
@@ -262,6 +265,10 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
     },
     [form],
   );
+
+  const openHistoryDialog = useCallback((gift: Gift) => {
+    setHistoryGift(gift);
+  }, []);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
@@ -360,15 +367,40 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         className: "text-xs text-zinc-500",
         cell: (gift) => formatDateTime(gift.received_at),
       },
+      {
+        key: "updated",
+        header: "Updated At",
+        hideBelow: "lg",
+        className: "text-xs",
+        cell: (gift) => {
+          const wasEdited =
+            gift.updated_at &&
+            gift.created_at &&
+            gift.updated_at !== gift.created_at;
+          return (
+            <span className={wasEdited ? "text-amber-600 font-medium" : "text-zinc-400"}>
+              {wasEdited ? formatDateTime(gift.updated_at) : "—"}
+            </span>
+          );
+        },
+      },
     ];
 
-    if (isOwner) {
-      base.push({
-        key: "actions",
-        header: "",
-        headClassName: "w-24",
-        cell: (gift) => (
-          <div className="flex gap-1 justify-end">
+    base.push({
+      key: "actions",
+      header: "",
+      headClassName: "w-24",
+      cell: (gift) => (
+        <div className="flex gap-1 justify-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="View history"
+            onClick={() => openHistoryDialog(gift)}
+          >
+            <History className="h-4 w-4 text-zinc-400" />
+          </Button>
+          {isOwner ? (
             <Button
               variant="ghost"
               size="icon"
@@ -377,10 +409,10 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
             >
               <Pencil className="h-4 w-4 text-zinc-500" />
             </Button>
-          </div>
-        ),
-      });
-    }
+          ) : null}
+        </div>
+      ),
+    });
 
     return base;
   }, [openEditDialog, isOwner]);
@@ -568,7 +600,133 @@ export function GiftsTab({ weddingId }: { weddingId: number }) {
         <FormField label="Note">
           {(field) => <Input {...field} {...form.register("note")} />}
         </FormField>
+
       </FormDialog>
+
+      <GiftHistoryDialog
+        weddingId={weddingId}
+        gift={historyGift}
+        onClose={() => setHistoryGift(null)}
+      />
+    </div>
+  );
+}
+
+// ─── Gift History Dialog ──────────────────────────────────────────────────────
+
+const FIELD_LABELS: Record<string, string> = {
+  guest_id: "Guest",
+  gift_type: "Type",
+  amount: "Amount",
+  currency: "Currency",
+  item_name: "Item Name",
+  note: "Note",
+  received_at: "Received At",
+};
+
+function GiftHistoryDialog({
+  weddingId,
+  gift,
+  onClose,
+}: {
+  weddingId: number;
+  gift: Gift | null;
+  onClose: () => void;
+}) {
+  const { data: entries, isLoading } = useGiftHistory(weddingId, gift?.id ?? null);
+
+  if (!gift) return null;
+
+  const guestLabel = gift.guest?.name ?? "Anonymous";
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`History for gift from ${guestLabel}`}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl flex flex-col max-h-[80vh]">
+        {/* Header */}
+        <div className="flex items-center gap-2 px-5 py-4 border-b border-zinc-100">
+          <History className="h-4 w-4 text-zinc-400 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-zinc-800 truncate">
+              Gift History
+            </h2>
+            <p className="text-xs text-zinc-400 truncate">
+              {guestLabel} · {GIFT_TYPE_LABELS[gift.gift_type] ?? gift.gift_type}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close history"
+            onClick={onClose}
+            className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto px-5 py-4 flex-1">
+          {isLoading ? (
+            <p className="text-xs text-zinc-400 animate-pulse">Loading history...</p>
+          ) : !entries?.length ? (
+            <p className="text-sm text-zinc-400 text-center py-6">No history recorded yet.</p>
+          ) : (
+            <ol className="space-y-4">
+              {entries.map((entry) => (
+                <li key={entry.id} className="flex gap-3">
+                  <div className="mt-0.5 flex flex-col items-center gap-1">
+                    <span className="h-6 w-6 shrink-0 rounded-full bg-zinc-100 flex items-center justify-center">
+                      <span className="h-2 w-2 rounded-full bg-zinc-400" />
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1 pb-4 border-b border-zinc-50 last:border-0 last:pb-0">
+                    <p className="text-sm text-zinc-700">
+                      <span className="font-medium">
+                        {entry.user?.name ?? "Unknown user"}
+                      </span>
+                      {" "}
+                      {entry.action === "created" ? "recorded this gift" : "edited this gift"}
+                    </p>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      <time dateTime={entry.actioned_at ?? ""}>
+                        {formatDateTime(entry.actioned_at)}
+                      </time>
+                    </p>
+                    {entry.action === "updated" &&
+                      entry.changes &&
+                      Object.keys(entry.changes).length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                          {Object.entries(entry.changes).map(([field, [, next]]) => (
+                            <li key={field} className="text-xs text-zinc-500">
+                              <span className="font-medium">
+                                {FIELD_LABELS[field] ?? field}
+                              </span>{" "}
+                              changed to{" "}
+                              <span className="font-mono bg-zinc-50 rounded px-1 text-zinc-700">
+                                {next != null ? String(next) : "—"}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
